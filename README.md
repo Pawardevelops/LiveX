@@ -1,16 +1,4 @@
-# Multimodal Realtime App with Gemini 2.0 by Next.js Framework
-
-A demonstration project showing how to build a realtime multimodal application using Google's Gemini 2.0 API and Next.js. This app can process audio, video, and generate transcripts in realtime.
-
-![Watch Demo Video](./thumbnail.jpg)
-
-[Watch the Tutorial Video](https://youtu.be/YUfer6xyExY)
-
-## Features
-
-- Realtime audio/video(image) interaction with Gemini 2.0 Multimodal Live API
-- Live transcription by Gemini 1.5/2.0 GenerativeAI API
-- Built with Next.js for optimal performance
+# LiveX
 
 ## Architecture
 
@@ -25,8 +13,8 @@ A demonstration project showing how to build a realtime multimodal application u
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yeyu2/gemini-nextjs.git
-cd gemini-nextjs
+git clone git@github.com:Pawardevelops/LiveX.git
+cd LiveX
 ```
 
 2. Install dependencies
