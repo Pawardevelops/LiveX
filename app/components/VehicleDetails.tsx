@@ -1,9 +1,12 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
   Radio,
@@ -11,13 +14,30 @@ import {
   MapPin,
   Gauge,
   CalendarClock,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Camera,
+  Video,
+  FileText,
+  Download,
+  Eye,
+  Play,
+  Maximize2,
+  X,
+  Settings,
+  Activity,
+  Wrench,
+  Fuel,
+  Battery,
+  Thermometer,
 } from "lucide-react";
+import VehicleDetailsTabView from "./VehicleDetailsTabView";
 
-/* --- Demo data (richer fields) --- */
 type Vehicle = {
   id: number;
   name: string;
-  details: string; // kept from your original
+  details: string;
   year: number;
   color: string;
   regNo: string;
@@ -79,76 +99,80 @@ const statusStyles: Record<Vehicle["status"], string> = {
 export default function VehicleDetails({ bikeId }: { bikeId: string }) {
   const router = useRouter();
   const bike = bikes.find((b) => b.id === parseInt(bikeId));
-
-  const handleStartLive = () => router.push("/live");
+  const [selectedMedia, setSelectedMedia] = useState<any>(null);
 
   if (!bike) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center px-4">
-        <Card className="max-w-sm w-full text-center">
-          <CardHeader>
-            <CardTitle>Vehicle not found</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600">
-              The vehicle you’re looking for doesn’t exist or may have been removed.
-            </p>
-            <Button className="mt-4 w-full" onClick={() => router.push("/vehicles")}>
-              Back to Vehicles
-            </Button>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="max-w-sm w-full text-center">
+            <CardHeader>
+              <CardTitle>Vehicle not found</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                The vehicle you're looking for doesn't exist or may have been
+                removed.
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => router.push("/vehicles")}
+              >
+                Back to Vehicles
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen w-full bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.10),transparent_45%),radial-gradient(ellipse_at_bottom_right,rgba(16,185,129,0.10),transparent_45%)] px-4 py-6">
-      {/* Header / Brand */}
-      <div className="mx-auto max-w-4xl mb-4 flex items-center justify-between">
-        <button
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto max-w-6xl mb-6 flex items-center justify-between"
+      >
+        <Button
+          variant="ghost"
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900"
-          aria-label="Go back"
+          className="flex items-center gap-2 hover:bg-white/50"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
-        </button>
+        </Button>
         <div className="text-right">
-          <div className="text-xs text-gray-600">App</div>
+          <div className="text-xs text-gray-600">Vehicle Inspection</div>
           <div className="text-2xl font-extrabold tracking-tight">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-600 to-blue-600">
-              LiveX
+              Po
             </span>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Main Card */}
-      <div className="mx-auto max-w-4xl">
+      {/* Vehicle Header Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto max-w-6xl mb-6"
+      >
         <Card className="border-white/60 bg-white/85 backdrop-blur">
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-xl sm:text-2xl leading-tight">
-                  {bike.name}
-                </CardTitle>
-                <p className="text-sm text-gray-600 mt-1">{bike.details}</p>
-              </div>
-              <Badge variant="outline" className={`border ${statusStyles[bike.status]}`}>
-                {bike.status}
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            {/* Media + Specs */}
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-5">
-              {/* Media */}
-              <div className="sm:col-span-2">
-                <div className="relative w-full h-44 sm:h-56 rounded-lg overflow-hidden bg-gray-100">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Vehicle Image */}
+              <div className="lg:w-1/3">
+                <motion.div
+                  className="relative w-full h-48 lg:h-64 rounded-lg overflow-hidden bg-gray-100"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
                   {bike.thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={bike.thumb}
                       alt={`${bike.name} photo`}
@@ -156,83 +180,148 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <BikeIcon className="h-10 w-10" />
+                      <BikeIcon className="h-16 w-16" />
                     </div>
                   )}
-                </div>
+                  <div className="absolute top-4 right-4">
+                    <Badge
+                      variant="outline"
+                      className={`border ${
+                        statusStyles[bike.status]
+                      } backdrop-blur`}
+                    >
+                      {bike.status}
+                    </Badge>
+                  </div>
+                </motion.div>
               </div>
 
-              {/* Specs */}
-              <div className="sm:col-span-3">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-md border bg-white px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500">Year</div>
-                    <div className="font-medium">{bike.year}</div>
-                  </div>
-                  <div className="rounded-md border bg-white px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500">Color</div>
-                    <div className="font-medium">{bike.color}</div>
-                  </div>
-                  <div className="rounded-md border bg-white px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500">Registration</div>
-                    <div className="font-medium">{bike.regNo}</div>
-                  </div>
-                  <div className="rounded-md border bg-white px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500">Odometer</div>
-                    <div className="font-medium">{bike.odoKm.toLocaleString()} km</div>
-                  </div>
-                  <div className="rounded-md border bg-white px-3 py-2 col-span-2">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500">Location</div>
-                    <div className="font-medium flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      {bike.location}
-                    </div>
-                  </div>
+              {/* Vehicle Info */}
+              <div className="lg:w-2/3">
+                <div className="mb-4">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                    {bike.name}
+                  </h1>
+                  <p className="text-gray-600">{bike.details}</p>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                  <div className="inline-flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4 text-gray-400" />
-                    Last inspection:
-                    <span className="font-semibold">
-                      {bike.lastInspection
-                        ? new Date(bike.lastInspection).toLocaleDateString()
-                        : "—"}
-                    </span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: "Year", value: bike.year, icon: CalendarClock },
+                    { label: "Color", value: bike.color, icon: Settings },
+                    {
+                      label: "Registration",
+                      value: bike.regNo,
+                      icon: FileText,
+                    },
+                    {
+                      label: "Odometer",
+                      value: `${bike.odoKm.toLocaleString()} km`,
+                      icon: Gauge,
+                    },
+                  ].map((item, index) => (
+                    <motion.div
+                      key={item.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white rounded-lg p-3 border border-gray-200"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <item.icon className="h-4 w-4 text-gray-400" />
+                        <span className="text-xs text-gray-500 uppercase tracking-wide">
+                          {item.label}
+                        </span>
+                      </div>
+                      <div className="font-semibold text-gray-900">
+                        {item.value}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    {bike.location}
                   </div>
-                  <div className="inline-flex items-center gap-2">
-                    <Gauge className="h-4 w-4 text-gray-400" />
-                    Health: <span className="font-semibold">—</span>
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="h-4 w-4" />
+                    Last inspection:{" "}
+                    {bike.lastInspection
+                      ? new Date(bike.lastInspection).toLocaleDateString()
+                      : "—"}
                   </div>
                 </div>
               </div>
             </div>
-
-            <Separator className="my-5" />
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button className="h-11 text-base" onClick={handleStartLive}>
-                <Radio className="mr-2 h-4 w-4" />
-                Start Live
-              </Button>
-              <Button
-                variant="secondary"
-                className="h-11 text-base"
-                onClick={() => router.push("/vehicles")}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Vehicles
-              </Button>
-            </div>
-
-            {/* Small note */}
-            <p className="mt-3 text-xs text-gray-500">
-              Tip: Ensure camera and microphone permissions are enabled before starting Live.
-            </p>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
+
+      {/* Tab Navigation */}
+
+      {/* Tab Content */}
+      <VehicleDetailsTabView bike={bike} setSelectedMedia={setSelectedMedia} />
+
+      {/* Media Modal */}
+      <AnimatePresence>
+        {selectedMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            onClick={() => setSelectedMedia(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold text-lg">{selectedMedia.title}</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedMedia(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="p-4 flex items-center justify-center bg-gray-100 min-h-[300px]">
+                {selectedMedia.type === "image" ? (
+                  <Camera className="h-16 w-16 text-gray-400" />
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <Video className="h-16 w-16 text-gray-400 mb-4" />
+                    <Badge>{selectedMedia.duration}</Badge>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="fixed bottom-6 right-6"
+      >
+        <Button
+          size="lg"
+          className="rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          onClick={() => router.push("/vehicles")}
+        >
+          <ArrowLeft className="mr-2 h-5 w-5" />
+          Back to Vehicles
+        </Button>
+      </motion.div>
     </div>
   );
 }
