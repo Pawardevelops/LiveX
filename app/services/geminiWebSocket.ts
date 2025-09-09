@@ -3,9 +3,13 @@ import { TranscriptionService } from './transcriptionService';
 import { pcmToWav } from '../utils/audioUtils';
 
 const MODEL = "models/gemini-2.0-flash-exp";
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+const API_KEY = "AIzaSyC30i-5F-IIT95Hd4eazVEiW0Nq2_59qLc";
 const HOST = "generativelanguage.googleapis.com";
 const WS_URL = `wss://${HOST}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${API_KEY}`;
+
+type GeminiWSOptions = {
+  instructions?: string;
+};
 
 export class GeminiWebSocket {
   private ws: WebSocket | null = null;
@@ -14,6 +18,9 @@ export class GeminiWebSocket {
   private onMessageCallback: ((text: string) => void) | null = null;
   private onSetupCompleteCallback: (() => void) | null = null;
   private audioContext: AudioContext | null = null;
+  private connectionTimeout: NodeJS.Timeout | null = null;
+  private reconnectAttempts: number = 0;
+  private opts: GeminiWSOptions;
   
   // Audio queue management
   private audioQueue: Float32Array[] = [];
@@ -31,13 +38,15 @@ export class GeminiWebSocket {
     onSetupComplete: () => void,
     onPlayingStateChange: (isPlaying: boolean) => void,
     onAudioLevelChange: (level: number) => void,
-    onTranscription: (text: string) => void
+    onTranscription: (text: string) => void,
+    opts: GeminiWSOptions = {}
   ) {
     this.onMessageCallback = onMessage;
     this.onSetupCompleteCallback = onSetupComplete;
     this.onPlayingStateChange = onPlayingStateChange;
     this.onAudioLevelChange = onAudioLevelChange;
     this.onTranscriptionCallback = onTranscription;
+    this.opts = opts;
     // Create AudioContext for playback
     this.audioContext = new AudioContext({
       sampleRate: 24000  // Match the response audio rate
@@ -46,14 +55,35 @@ export class GeminiWebSocket {
   }
 
   connect() {
+    if (!API_KEY) {
+      console.error("[WebSocket] Gemini API key not found. Please set NEXT_PUBLIC_GEMINI_API_KEY environment variable.");
+      return;
+    }
+
     if (this.ws?.readyState === WebSocket.OPEN) {
       return;
     }
     
-    this.ws = new WebSocket(WS_URL);
+    try {
+      this.ws = new WebSocket(WS_URL);
+      this.connectionTimeout = setTimeout(() => {
+        if (this.ws?.readyState !== WebSocket.OPEN) {
+          console.error("[WebSocket] Connection timed out.");
+          this.ws?.close();
+        }
+      }, 10000); // 10 second timeout
+    } catch (error) {
+      console.error("[WebSocket] Error creating WebSocket:", error);
+      return;
+    }
 
     this.ws.onopen = () => {
       this.isConnected = true;
+      this.reconnectAttempts = 0;
+      if (this.connectionTimeout) {
+        clearTimeout(this.connectionTimeout);
+        this.connectionTimeout = null;
+      }
       this.sendInitialSetup();
     };
 
@@ -80,16 +110,23 @@ export class GeminiWebSocket {
 
     this.ws.onclose = (event) => {
       this.isConnected = false;
+      if (this.connectionTimeout) {
+        clearTimeout(this.connectionTimeout);
+        this.connectionTimeout = null;
+      }
       
       // Only attempt to reconnect if we haven't explicitly called disconnect
       if (!event.wasClean && this.isSetupComplete) {
-        setTimeout(() => this.connect(), 1000);
+        this.reconnectAttempts++;
+        const delay = Math.min(30000, Math.pow(2, this.reconnectAttempts) * 1000);
+        console.log(`[WebSocket] Connection closed. Reconnecting in ${delay}ms...`);
+        setTimeout(() => this.connect(), delay);
       }
     };
   }
 
   private sendInitialSetup() {
-    const setupMessage = {
+    const setupMessage: any = {
       setup: {
         model: MODEL,
         generation_config: {
@@ -97,7 +134,36 @@ export class GeminiWebSocket {
         }
       }
     };
+    if (this.opts.instructions) {
+      setupMessage.setup.system_instruction = {
+        parts: [{ text: this.opts.instructions }]
+      };
+    }
     this.ws?.send(JSON.stringify(setupMessage));
+  }
+
+  requestResponse(extra?: Record<string, any>) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+    const message = {
+      realtime_input: {
+        text: extra ? JSON.stringify(extra) : "continue",
+      },
+    };
+
+    this.ws.send(JSON.stringify(message));
+  }
+
+  sendClientEvent(name: string, data?: any) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+    const message = {
+      realtime_input: {
+        text: JSON.stringify({ event: name, data }),
+      },
+    };
+
+    this.ws.send(JSON.stringify(message));
   }
 
   sendMediaChunk(b64Data: string, mimeType: string) {

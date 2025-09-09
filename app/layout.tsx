@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body suppressHydrationWarning className={inter.className}>
-        <main className="min-h-screen p-8 flex flex-col items-center justify-center">
+        <main className="min-h-screen flex flex-col items-center justify-center">
           {children}
         </main>
       </body>
