@@ -8,648 +8,88 @@ import { Video, VideoOff, Zap, RefreshCcw, MessageSquareText, X } from "lucide-r
 import { GeminiWebSocket } from '../services/geminiWebSocket';
 import { Base64 } from 'js-base64';
 
-import { buildInspectorInstructions, CheckpointTree } from "../prompts/inspector";
+import { buildStepInstruction, CheckpointTree } from "../prompts/inspector";
 
 // Example checkpoints (replace with your real data)
 // ----------------- YOUR (packed) CHECKPOINTS -----------------
-
-const CHECKPOINTS: CheckpointTree = {
-  front: {
-    tyre: {
-      question: "Show the front tyre tread and sidewall, close-up, then a wide shot.",
-      issues: [
-        "tyre is worn out (tread below wear markers)",
-        "uneven/feathered wear",
-        "sidewall cuts or bulges",
-        "embedded nails or objects",
-        "low pressure",
-        "no issues"
-      ],
-      fixes: [
-        "replace front tyre",
-        "balance and align front wheel",
-        "remove debris and patch/replace as needed",
-        "inflate to recommended PSI",
-        "check fork alignment if wear is uneven",
-        "no fixes required"
-      ]
-    },
-    rim_spokes: {
-      question: "Rotate the front wheel and show the rim edge and spokes (if spoked).",
-      issues: [
-        "bent rim",
-        "loose or missing spokes",
-        "cracks near spoke nipples",
-        "corrosion on rim/spokes",
-        "no issues"
-      ],
-      fixes: [
-        "true or replace rim",
-        "tighten/replace spokes and re-true wheel",
-        "repair cracks or replace wheel",
-        "clean and protect with anti-corrosion spray",
-        "no fixes required"
-      ]
-    },
-    axle_bearing: {
-      question: "Rock the front wheel side-to-side and spin it; show for play or roughness.",
-      issues: [
-        "excessive lateral play",
-        "gritty/rough rotation noise",
-        "leaking or missing seals",
-        "no issues"
-      ],
-      fixes: [
-        "replace front wheel bearings",
-        "install new seals",
-        "re-grease and torque to spec",
-        "no fixes required"
-      ]
-    },
-    brakes_disc_caliper: {
-      question: "Show front brake disc thickness and caliper pads; squeeze lever for feel.",
-      issues: [
-        "pads worn below minimum",
-        "disc scoring or warping",
-        "caliper binding",
-        "brake fluid leak",
-        "spongy lever",
-        "no issues"
-      ],
-      fixes: [
-        "replace pads; clean and grease pins",
-        "resurface/replace disc",
-        "service caliper (clean, new seals)",
-        "fix leak and bleed system",
-        "bleed brakes; replace fluid",
-        "no fixes required"
-      ]
-    },
-    forks_suspension: {
-      question: "Show fork tubes for leaks/pitting; compress front suspension a few times.",
-      issues: [
-        "fork oil seal leak",
-        "pitted/chipped stanchions",
-        "excessive dive or rebound",
-        "uneven fork alignment",
-        "no issues"
-      ],
-      fixes: [
-        "replace fork seals and oil",
-        "refinish/replace stanchions",
-        "set correct oil weight/springs",
-        "realign front end and torque to spec",
-        "no fixes required"
-      ]
-    },
-    headlight: {
-      question: "Turn on low and high beam; show beam alignment on a wall.",
-      issues: [
-        "bulb not working",
-        "flicker/poor connection",
-        "beam misaligned",
-        "lens hazy or cracked",
-        "no issues"
-      ],
-      fixes: [
-        "replace bulb or connector",
-        "repair wiring/ground",
-        "adjust headlight alignment screws",
-        "polish or replace lens",
-        "no fixes required"
-      ]
-    },
-    indicators_front: {
-      question: "Activate left and right front indicators and hazards; show both sides.",
-      issues: [
-        "indicator not flashing",
-        "hyper-flash (incorrect rate)",
-        "damaged lens",
-        "loose stalk/mount",
-        "no issues"
-      ],
-      fixes: [
-        "replace bulb/LED module",
-        "fit correct relay/resistors",
-        "replace lens assembly",
-        "tighten or replace mount",
-        "no fixes required"
-      ]
-    },
-    horn: {
-      question: "Press the horn; hold for two seconds.",
-      issues: [
-        "horn weak or silent",
-        "intermittent horn",
-        "wiring/ground issue",
-        "no issues"
-      ],
-      fixes: [
-        "adjust horn screw or replace horn",
-        "clean switch contacts",
-        "repair wiring/ground and fuse",
-        "no fixes required"
-      ]
-    },
-    controls_handlebar: {
-      question: "Show throttle free play, front brake lever travel, and switchgear operation.",
-      issues: [
-        "excessive throttle free play",
-        "sticky throttle return",
-        "damaged switches",
-        "loose lever or perch",
-        "no issues"
-      ],
-      fixes: [
-        "adjust throttle cables",
-        "lubricate/replace throttle cables",
-        "repair/replace switches",
-        "tighten or replace lever assembly",
-        "no fixes required"
-      ]
-    },
-    front_mudguard: {
-      question: "Show front mudguard/fender mounting points and clearance.",
-      issues: [
-        "cracked/broken mounts",
-        "rubbing on tyre",
-        "loose bolts",
-        "no issues"
-      ],
-      fixes: [
-        "replace/repair mudguard",
-        "realign for clearance",
-        "tighten/replace fasteners",
-        "no fixes required"
-      ]
-    }
+const CHECKPOINTS = {
+  front_tyre: {
+    question: "Show the front tyre tread and sidewall, close-up, then a wide shot.",
+    issues: [
+      "tyre is worn out (tread below wear markers)",
+      "uneven/feathered wear",
+      "sidewall cuts or bulges",
+      "embedded nails or objects",
+      "low pressure",
+      "no issues"
+    ],
+    fixes: [
+      "replace front tyre",
+      "balance and align front wheel",
+      "remove debris and patch/replace as needed",
+      "inflate to recommended PSI",
+      "check fork alignment if wear is uneven",
+      "no fixes required"
+    ]
   },
 
-  back: {
-    tyre: {
-      question: "Show rear tyre tread/sidewall; rotate to check embedded objects.",
-      issues: [
-        "tyre worn flat in center",
-        "sidewall damage",
-        "puncture/embedded object",
-        "under-inflation",
-        "no issues"
-      ],
-      fixes: [
-        "replace tyre",
-        "patch/plug if applicable; otherwise replace",
-        "inflate to spec",
-        "check alignment and load settings",
-        "no fixes required"
-      ]
-    },
-    rim_spokes: {
-      question: "Spin rear wheel; show rim runout and spoke condition (if spoked).",
-      issues: [
-        "rim out of true",
-        "loose/missing spokes",
-        "cracks/corrosion",
-        "no issues"
-      ],
-      fixes: [
-        "true or replace rim",
-        "retension/replace spokes",
-        "repair cracks or replace wheel",
-        "no fixes required"
-      ]
-    },
-    axle_bearing: {
-      question: "Rock the rear wheel side-to-side; listen while spinning for roughness.",
-      issues: [
-        "bearing play",
-        "rough/gritty feel",
-        "seal leakage",
-        "no issues"
-      ],
-      fixes: [
-        "replace rear wheel bearings",
-        "install new seals",
-        "grease and torque axle nut",
-        "no fixes required"
-      ]
-    },
-    brakes_rear: {
-      question: "Show rear brake pads/shoes and disc/drum; press pedal for travel.",
-      issues: [
-        "pads/shoes worn out",
-        "disc scoring/warping",
-        "dragging brake",
-        "soft pedal",
-        "no issues"
-      ],
-      fixes: [
-        "replace pads/shoes",
-        "resurface/replace disc",
-        "service caliper/wheel cylinder",
-        "bleed system; replace fluid",
-        "no fixes required"
-      ]
-    },
-    chain_sprocket: {
-      question: "Show chain slack at mid-span; show front and rear sprocket teeth close-up.",
-      issues: [
-        "excessive chain slack",
-        "tight spots/rust",
-        "hooked or sharp sprocket teeth",
-        "dry/dirty chain",
-        "no issues"
-      ],
-      fixes: [
-        "adjust chain slack to spec",
-        "clean and lube chain",
-        "replace chain and sprockets as a set",
-        "check alignment and cush drive",
-        "no fixes required"
-      ]
-    },
-    swingarm_shocks: {
-      question: "Show swingarm for play/cracks; show rear shocks for leaks and preload.",
-      issues: [
-        "swingarm bearing play",
-        "shock oil leak",
-        "weak damping",
-        "broken preload adjuster",
-        "no issues"
-      ],
-      fixes: [
-        "replace swingarm bearings",
-        "rebuild/replace shocks",
-        "set preload and damping to spec",
-        "replace adjuster hardware",
-        "no fixes required"
-      ]
-    },
-    tail_brake_light: {
-      question: "Press the brakes; show tail and brake light brightness and response.",
-      issues: [
-        "brake light not working",
-        "dim output",
-        "late activation",
-        "cracked lens",
-        "no issues"
-      ],
-      fixes: [
-        "replace bulb/LED unit",
-        "clean connectors/ground",
-        "adjust brake light switch",
-        "replace lens/assembly",
-        "no fixes required"
-      ]
-    },
-    indicators_rear: {
-      question: "Activate rear indicators and hazards; show both sides working.",
-      issues: [
-        "bulb/LED failure",
-        "hyper-flash",
-        "damaged housing",
-        "loose mount",
-        "no issues"
-      ],
-      fixes: [
-        "replace bulb/LED",
-        "fit proper relay/resistors",
-        "replace housing",
-        "tighten or replace bracket",
-        "no fixes required"
-      ]
-    },
-    number_plate_mount: {
-      question: "Show number plate bracket, light, and fasteners.",
-      issues: [
-        "loose/missing bolts",
-        "plate light not working",
-        "cracked bracket",
-        "no issues"
-      ],
-      fixes: [
-        "tighten/replace hardware",
-        "replace lamp/bulb",
-        "replace bracket",
-        "no fixes required"
-      ]
-    }
+  back_tyre: {
+    question: "Show rear tyre tread/sidewall; rotate to check embedded objects.",
+    issues: [
+      "tyre worn flat in center",
+      "sidewall damage",
+      "puncture/embedded object",
+      "under-inflation",
+      "no issues"
+    ],
+    fixes: [
+      "replace tyre",
+      "patch/plug if applicable; otherwise replace",
+      "inflate to spec",
+      "check alignment and load settings",
+      "no fixes required"
+    ]
   },
 
-  right_side: {
-    exhaust_system: {
-      question: "Show exhaust header to muffler joints, hangers, and heat shields (right side).",
-      issues: [
-        "leak at joints (soot marks)",
-        "loose/broken hanger",
-        "heat shield rattle",
-        "dent or corrosion",
-        "no issues"
-      ],
-      fixes: [
-        "replace gaskets/clamps",
-        "tighten/replace hanger",
-        "tighten/replace shield hardware",
-        "repair/replace section",
-        "no fixes required"
-      ]
-    },
-    brake_pedal_freeplay: {
-      question: "Show rear brake pedal free play and return; press and release slowly.",
-      issues: [
-        "no free play (dragging)",
-        "excessive travel",
-        "sticky return",
-        "worn pedal bush",
-        "no issues"
-      ],
-      fixes: [
-        "adjust pedal free play to spec",
-        "bleed/service rear brake",
-        "lubricate/replace return spring",
-        "replace pedal bushings",
-        "no fixes required"
-      ]
-    },
-    engine_casing_right: {
-      question: "Show right engine covers (clutch/ignition) for leaks or cracks.",
-      issues: [
-        "oil seep/leak",
-        "cracked cover",
-        "missing bolts",
-        "damaged gasket",
-        "no issues"
-      ],
-      fixes: [
-        "replace gasket/seal",
-        "replace/repair cover",
-        "install missing hardware with threadlocker",
-        "torque to spec",
-        "no fixes required"
-      ]
-    },
-    throttle_cable: {
-      question: "Twist throttle and release; show free play at grip and smooth return.",
-      issues: [
-        "excessive free play",
-        "sticking throttle",
-        "frayed cable",
-        "dry cable housing",
-        "no issues"
-      ],
-      fixes: [
-        "adjust free play",
-        "lubricate/replace cable",
-        "inspect/replace throttle tube",
-        "route correctly; check bar end",
-        "no fixes required"
-      ]
-    },
-    radiator_coolant_reservoir: {
-      question: "If liquid-cooled, show radiator fins and coolant reservoir level/condition.",
-      issues: [
-        "low coolant level",
-        "leaks at hoses",
-        "bent/blocked fins",
-        "old/dirty coolant",
-        "no issues"
-      ],
-      fixes: [
-        "top-up to mark with correct coolant",
-        "replace clamps/hoses",
-        "straighten/clean fins",
-        "flush and refill",
-        "no fixes required"
-      ]
-    },
-    body_panels_right: {
-      question: "Show right fairings/panels and mounting points.",
-      issues: [
-        "cracked panel",
-        "missing/loose clips",
-        "mismatched paint",
-        "rubbing marks",
-        "no issues"
-      ],
-      fixes: [
-        "repair/replace panel",
-        "fit new clips/fasteners",
-        "touch-up or repaint",
-        "realign panel gaps",
-        "no fixes required"
-      ]
-    },
-    mirror_right: {
-      question: "Show right mirror housing and mount; adjust to show movement.",
-      issues: [
-        "loose mount",
-        "cracked mirror",
-        "vibration blur",
-        "no issues"
-      ],
-      fixes: [
-        "tighten/replace mount",
-        "replace mirror",
-        "add anti-vibration washer",
-        "no fixes required"
-      ]
-    },
-    footpeg_bracket_right: {
-      question: "Show rider/pillion right footpegs and brackets; fold and release.",
-      issues: [
-        "loose bracket",
-        "stiff hinge",
-        "rubber worn",
-        "no issues"
-      ],
-      fixes: [
-        "tighten/replace hardware",
-        "clean and lube hinge",
-        "replace rubber/peg",
-        "no fixes required"
-      ]
-    },
-    wiring_right: {
-      question: "Show visible wiring/loom on right side for chafing or exposed wires.",
-      issues: [
-        "chafed insulation",
-        "loose connectors",
-        "aftermarket splices",
-        "no issues"
-      ],
-      fixes: [
-        "insulate with heat-shrink/tape",
-        "secure connectors",
-        "proper solder/connector repair",
-        "no fixes required"
-      ]
-    }
+  mirror: {
+    question: "Show all rear-view and side mirrors; move them to demonstrate adjustability and stability.",
+    issues: [
+      "cracked or broken mirror",
+      "mirror loose or not holding position",
+      "discolored or hazy glass",
+      "obstructed view",
+      "no issues"
+    ],
+    fixes: [
+      "replace mirror glass or assembly",
+      "tighten or replace mounting",
+      "clean or replace as needed",
+      "adjust or clear obstructions",
+      "no fixes required"
+    ]
   },
 
-  left_side: {
-    gear_shifter: {
-      question: "Show gear shifter linkage; move through gears with engine off.",
-      issues: [
-        "excessive play",
-        "bent lever",
-        "stiff linkage",
-        "loose pinch bolt",
-        "no issues"
-      ],
-      fixes: [
-        "tighten/replace linkage joints",
-        "straighten/replace lever",
-        "clean and lube pivots",
-        "torque pinch bolt",
-        "no fixes required"
-      ]
-    },
-    clutch_lever_freeplay: {
-      question: "Show clutch lever free play; pull and release to check smoothness.",
-      issues: [
-        "no free play (slip risk)",
-        "excess free play (drag)",
-        "frayed cable",
-        "stiff lever",
-        "no issues"
-      ],
-      fixes: [
-        "adjust free play to spec",
-        "replace/lube cable",
-        "service lever pivot",
-        "check clutch actuation",
-        "no fixes required"
-      ]
-    },
-    engine_casing_left: {
-      question: "Show left engine covers (stator/front sprocket) for leaks and damage.",
-      issues: [
-        "oil leak at sprocket seal",
-        "dirty/loose front sprocket",
-        "cracked cover",
-        "missing bolts",
-        "no issues"
-      ],
-      fixes: [
-        "replace sprocket seal",
-        "clean and torque sprocket; replace lock tab",
-        "repair/replace cover",
-        "install/torque bolts",
-        "no fixes required"
-      ]
-    },
-    chain_guard_alignment: {
-      question: "Show chain guard and alignment marks on swingarm.",
-      issues: [
-        "chain rubbing guard",
-        "misaligned axle",
-        "missing guard fasteners",
-        "no issues"
-      ],
-      fixes: [
-        "realign rear axle to marks",
-        "adjust chain line",
-        "tighten/replace fasteners",
-        "no fixes required"
-      ]
-    },
-    battery_compartment: {
-      question: "Open left cover (if applicable) and show battery terminals and hold-down.",
-      issues: [
-        "loose terminals",
-        "corrosion on posts",
-        "battery not secured",
-        "low voltage symptoms",
-        "no issues"
-      ],
-      fixes: [
-        "tighten terminals",
-        "clean and apply dielectric grease",
-        "secure battery strap",
-        "charge/test or replace battery",
-        "no fixes required"
-      ]
-    },
-    side_stand_switch: {
-      question: "Show side stand, switch wiring, and spring; deploy and retract.",
-      issues: [
-        "weak/broken spring",
-        "faulty side-stand switch",
-        "loose pivot",
-        "stand scraping ground",
-        "no issues"
-      ],
-      fixes: [
-        "replace spring",
-        "test/replace switch; repair wiring",
-        "grease/tighten pivot bolt",
-        "adjust or replace stand",
-        "no fixes required"
-      ]
-    },
-    body_panels_left: {
-      question: "Show left fairings/panels and gaps at joins.",
-      issues: [
-        "cracks/scratches",
-        "loose/missing clips",
-        "panel misalignment",
-        "no issues"
-      ],
-      fixes: [
-        "repair/replace panel",
-        "fit new clips",
-        "realign and tighten",
-        "no fixes required"
-      ]
-    },
-    mirror_left: {
-      question: "Show left mirror housing and mount; check for play.",
-      issues: [
-        "loose mount",
-        "cracked glass",
-        "wobbles at speed",
-        "no issues"
-      ],
-      fixes: [
-        "tighten/replace mount",
-        "replace mirror",
-        "fit anti-vibration hardware",
-        "no fixes required"
-      ]
-    },
-    wiring_left: {
-      question: "Show visible wiring/loom on left side near battery/ECU area.",
-      issues: [
-        "exposed wires",
-        "loose connectors",
-        "poor aftermarket joins",
-        "no issues"
-      ],
-      fixes: [
-        "insulate/heat-shrink",
-        "seat and secure connectors",
-        "redo joins with proper crimps",
-        "no fixes required"
-      ]
-    },
-    fuel_pet_cock: {
-      question: "If applicable, show fuel tap/petcock and hoses for leaks or cracks.",
-      issues: [
-        "fuel seep/leak",
-        "cracked hose",
-        "stiff or stuck tap",
-        "no issues"
-      ],
-      fixes: [
-        "replace tap gasket or unit",
-        "replace fuel hose and clamps",
-        "service/lubricate tap",
-        "no fixes required"
-      ]
-    }
+  odometer: {
+    question: "Show a close-up of the odometer with the key in ON position. Rotate the trip-meter if possible.",
+    issues: [
+      "display not working",
+      "incorrect reading (visual or known issue)",
+      "stuck digits/analog needle",
+      "fogged/damaged display",
+      "no issues"
+    ],
+    fixes: [
+      "check fuses/connections",
+      "repair or replace odometer assembly",
+      "replace glass or clean display",
+      "verify with service records",
+      "no fixes required"
+    ]
   }
 };
 
-const INSTRUCTIONS = buildInspectorInstructions(CHECKPOINTS);
+
+const INSTRUCTIONS = buildStepInstruction(CHECKPOINTS);
 
 
 interface CameraPreviewProps {
