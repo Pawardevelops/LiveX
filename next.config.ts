@@ -1,9 +1,11 @@
-import type { NextConfig } from "next";
 const isProd = process.env.VERCEL_ENV === "production";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+module.exports = {
   productionBrowserSourceMaps: !isProd,
+  webpack(config, { dev, isServer }) {
+    if (process.env.VERCEL_ENV === "preview") {
+      config.devtool = "source-map"; // ensures sourcesContent is embedded
+    }
+    return config;
+  },
 };
-
-export default nextConfig;
