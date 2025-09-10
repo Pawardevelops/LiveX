@@ -129,7 +129,10 @@ const VehicleCardSection = ({ filtered }: { filtered: any }) => {
 
               <Button
                 className="h-7 text-xs mt-3 p-4 rounded-full border border-gray-200 hover:border-gray-300"
-                onClick={handleStartLive}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStartLive();
+                }}
               >
                 <Radio className="mr-2 h-4 w-4" />
                 Start live inspection
