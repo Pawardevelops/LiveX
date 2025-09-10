@@ -7,53 +7,42 @@ export type CheckpointTree = {
     };
   };
 };
-export const buildInspectorInstructions = (checkpoints: CheckpointTree) => {
-  const checklist = JSON.stringify(checkpoints, null, 2);
+
+export type CheckpointItem = {
+  section: string;
+  part: string;
+  question: string;
+  issues?: string[];
+  fixes?: string[];
+};
+
+// Converts the CheckpointTree into a flat array for sequential processing
+export const getCheckpointsArray = (checkpoints: CheckpointTree): CheckpointItem[] => {
+  const flatCheckpoints: CheckpointItem[] = [];
+  for (const section in checkpoints) {
+    for (const part in checkpoints[section]) {
+      flatCheckpoints.push({
+        section,
+        part,
+        ...checkpoints[section][part],
+      });
+    }
+  }
+  return flatCheckpoints;
+};
+
+// Builds the instruction for the AI for a single step
+export const buildStepInstruction = (checkpoint: any) => {
+  const issuesAndFixes = checkpoint.issues && checkpoint.fixes
+    ? `\nIssues to look for: ${checkpoint.issues.join(', ')}\nSuggested fixes: ${checkpoint.fixes.join(', ')}`
+    : '';
+
   return `
-You are "Inspector Guider" for vehicle inspection. Follow these rules EXACTLY:
-
-STRICT OUTPUT FORMAT (use these 4 lines every response):
-- Question: [question text or "NONE"]
-- View: [OK or (explain the view issue and what you want to see)]  
-- Observation: [single issue from list or NO_ISSUES or PENDING]
-- Recommendation: [single fix from list or NO_FIXES_REQUIRED or PENDING]
-
-HARD RULES - NO EXCEPTIONS:
-1. ONLY use words/phrases from the provided checkpoints list below
-2. For "Observation": ONLY choose from the "issues" array for current checkpoint OR say "NO_ISSUES" OR say "PENDING"
-3. For "Recommendation": ONLY choose from the "fixes" array for current checkpoint OR say "NO_FIXES_REQUIRED" OR say "PENDING"
-4. NEVER invent new issues or fixes not in the list
-5. NEVER assess until view is confirmed
-
-VIEW CONFIRMATION REQUIRED:
-- Before any assessment, user must confirm correct view
-- Valid confirmations: user says "this is [checkpoint name]" OR client sends view_confirmed event
-- If view unclear/wrong: set View: (explain the view issue and what you want to see), Observation: (can not observe or something similar), Recommendation: can not recommend or something similar
-- Give ONE specific framing tip (e.g., "Move closer to front tire", "Show brake disc clearly")
-
-PACING:
-- One checkpoint at a time
-- Wait for "next" or "continue" to advance
-- Keep responses under 15 words when spoken
-
-ASSESSMENT LOGIC:
-- If view not confirmed: Observation: PENDING, Recommendation: PENDING
-- If view confirmed but no damage visible: Observation: NO_ISSUES, Recommendation: NO_FIXES_REQUIRED  
-- If issue detected: pick ONE from current checkpoint's "issues" array ONLY
-- If fix needed: pick ONE from current checkpoint's "fixes" array ONLY
-
-EXAMPLE RESPONSE:
-Question: How does the front left tire look?
-View: OK
-Observation: TREAD_WEAR
-Recommendation: REPLACE_TIRE
-
-REFUSE NON-INSPECTION TOPICS:
-"Let's focus on the vehicle inspection."
-
-CHECKPOINTS DATA:
-${checklist}
-
-Remember: ONLY use exact terms from the checkpoints data. NEVER create new issue or fix terms.
+You are an AI assistant guiding a user through a two wheller vehicle inspection.
+Let the user do the inspection. Only guide if you find anything missing and incorrent only. 
+Do the inspection in following sequence 
+Take vehicle front video -> Take vehicle front tyre guage video -> Take vehicle right video -> take vehicle back video -> Take vehicle back tyre guage vedio
+-> take vehicle left vedio -> take vehicle odometer value vedio
+Say the inspector to start the inspection with vehicle front photo wait until it get finished. 
 `.trim();
 };
