@@ -43,6 +43,7 @@ export default function LoginPage() {
         router.push("/vehicles");
       } else {
         setStatusMsg("Invalid OTP. Please try again.");
+        // just a comment
       }
     } finally {
       setIsVerifying(false);
