@@ -9,7 +9,6 @@ import { GeminiWebSocket } from "../services/geminiWebSocket";
 import { Base64 } from "js-base64";
 import { s3UploadVideo } from "../utils/s3upload";
 import { buildStepInstruction } from "../prompts/inspector";
-import { SparklesCore } from "@/components/ui/sparkles";
 
 const INSTRUCTIONS = buildStepInstruction(null);
 
@@ -626,26 +625,6 @@ export default function CameraPreview({
                     <Zap className="h-5 w-5" />
                   </Button>
                 </div>
-              </div>
-              <div className="w-[40rem] h-20 relative">
-                {/* Gradients */}
-                <div className="absolute inset-x-20 top-0 bg-gradient-to-r from-transparent via-indigo-500 to-transparent h-[2px] w-3/4 blur-sm" />
-                <div className="absolute inset-x-20 top-0 bg-gradient-to-r from-transparent via-indigo-500 to-transparent h-px w-3/4" />
-                <div className="absolute inset-x-60 top-0 bg-gradient-to-r from-transparent via-sky-500 to-transparent h-[5px] w-1/4 blur-sm" />
-                <div className="absolute inset-x-60 top-0 bg-gradient-to-r from-transparent via-sky-500 to-transparent h-px w-1/4" />
-
-                {/* Core component */}
-                <SparklesCore
-                  background="transparent"
-                  minSize={0.4}
-                  maxSize={1}
-                  particleDensity={1200}
-                  className="w-full h-full"
-                  particleColor="#FFFFFF"
-                />
-
-                {/* Radial Gradient to prevent sharp edges */}
-                <div className="absolute inset-0 w-full h-full  [mask-image:radial-gradient(350px_200px_at_top,transparent_20%,white)]"></div>
               </div>
             </div>
           </div>
