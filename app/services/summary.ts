@@ -1,7 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
+const genAI = new GoogleGenerativeAI(
+  process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
+);
 const MODEL_NAME = "models/gemini-2.0-flash-exp";
 
 export class DetailService {
@@ -10,7 +11,7 @@ export class DetailService {
     this.model = genAI.getGenerativeModel({ model: MODEL_NAME });
   }
 
-  async summary(id:any): Promise<string> {
+  async summary(id: any): Promise<string> {
     try {
       const transcription = localStorage.getItem("transcription") || ``;
 
@@ -20,7 +21,8 @@ export class DetailService {
 
       const result = await this.model.generateContent([
         { text: transcription },
-        { text: `You are an assistant that analyzes vehicle inspection transcripts. 
+        {
+          text: `You are an assistant that analyzes vehicle inspection transcripts. 
 Your task is to produce ONLY a valid JSON object in the following structure:
 
 {
@@ -73,12 +75,13 @@ Your task is to produce ONLY a valid JSON object in the following structure:
 7. Use proper JSON (no trailing commas, no comments).
 
 remember the vehicleId is ${id}
-` }
+`,
+        },
       ]);
 
       const txt = result.response.text();
-      console.log(txt,"result")
-      localStorage.setItem(`T_${id}`,txt);
+      localStorage.removeItem(`transcription`);
+      localStorage.setItem(`T_${id}`, txt);
       return txt;
     } catch (error) {
       console.error("Summary generation error:", error);
