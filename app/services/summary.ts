@@ -10,7 +10,7 @@ export class DetailService {
     this.model = genAI.getGenerativeModel({ model: MODEL_NAME });
   }
 
-  async summary(): Promise<string> {
+  async summary(id:any): Promise<string> {
     try {
       const transcription = localStorage.getItem("transcription") || ``;
 
@@ -71,11 +71,14 @@ Your task is to produce ONLY a valid JSON object in the following structure:
 5. Put any other identified issues into "extras" as key-value pairs.
 6. In "recommendation", provide actionable suggestions about the bike condition.
 7. Use proper JSON (no trailing commas, no comments).
+
+remember the vehicleId is ${id}
 ` }
       ]);
 
       const txt = result.response.text();
       console.log(txt,"result")
+      localStorage.setItem(`T_${id}`,txt);
       return txt;
     } catch (error) {
       console.error("Summary generation error:", error);

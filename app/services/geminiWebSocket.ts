@@ -391,7 +391,6 @@ export class GeminiWebSocket {
             if (transcription.toLowerCase().includes("inspection completed")) {
               this.disconnect()
               this.stopVideoRecordingAndRedirect()
-
             }
             if (["good image", "captured"].some(word => transcription.toLowerCase().includes(word))) {
               const imgToSave = this.getImageFrom1_5SecondsAgo();
