@@ -139,55 +139,7 @@ let defaultJsonData: VehicleData = {
   categoryBreakdown: [],
   overallScore: 0,
 };
-
-const TranscriptionData = [
-  {
-    8: {
-      details: {
-        vehicle: {
-          vehicleId: "unknown",
-          make: "Honda",
-          model: "CBR 250R",
-          year: null,
-          color: null,
-        },
-        inspection: {
-          inspectionStartTime: "unknown",
-          inspectionEndTime: "unknown",
-          status: "completed",
-          summary:
-            "The Honda CBR 250R's front section appears in good condition, free of scratches or dents. The rear brake requires attention due to weakness, while the right side is satisfactory. Headlights, indicators, and the odometer are all functioning correctly. However, rust is present on the exhaust, and a slight oil leak is detected near the engine block. The tires are in good condition, but the chain needs lubrication. Overall, the bike is rideable but demands some maintenance.",
-        },
-      },
-      condition: {
-        vehicleCondition: {
-          front: "good",
-          back: "bad",
-          right: "good",
-          lights: "good",
-          odometer: "good",
-          extras: {
-            exhaustRust: "Rust present on the exhaust",
-            oilLeak: "Slight oil leak near the engine block",
-            dryChain: "Chain is dry",
-          },
-          recommendation: [
-            "Address the rear brake issue",
-            "Remove rust from the exhaust",
-            "Fix the oil leak near the engine block",
-            "Lubricate the chain",
-          ],
-        },
-        inspectionCondition: {
-          inspectionCompleted: true,
-        },
-      },
-    },
-  },
-];
-
 // Tab configuration
-
 const tabs = [
   { id: "details", label: "Details", icon: Settings },
   { id: "issues", label: "Issues", icon: AlertTriangle },
