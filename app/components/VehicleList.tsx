@@ -130,23 +130,13 @@ export default function VehicleList() {
   }: {
     isStartInspection: boolean;
   }) => {
-    if (
-      !formData.name.trim() ||
-      !formData.regNo.trim() ||
-      !formData.odoKm.trim() ||
-      !formData.location.trim()
-    ) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
     const newVehicle = {
-      name: formData.name.trim(),
-      year: formData.year,
+      name: formData.name.trim() ?? "--",
+      year: formData.year ?? new Date().getFullYear(),
       color: formData.color.trim() || "Unknown",
-      regNo: formData.regNo.trim(),
+      regNo: formData.regNo.trim() ?? "--",
       odoKm: parseInt(formData.odoKm) || 0,
-      location: formData.location.trim(),
+      location: formData.location.trim() ?? "--",
       status: "In Progress" as VehicleStatus,
       lastInspection: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
       thumb:
@@ -339,15 +329,7 @@ export default function VehicleList() {
           </p>
           <div className="flex gap-4 md:justify-end">
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="default"
-                  className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create New Lead
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger asChild></DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
@@ -499,6 +481,15 @@ export default function VehicleList() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <Button
+              variant="default"
+              className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
+              onClick={() => handleCreateVehicle({ isStartInspection: true })}
+            >
+              <Plus className="h-4 w-4" />
+              Create New
+            </Button>
 
             <Button
               variant="secondary"
