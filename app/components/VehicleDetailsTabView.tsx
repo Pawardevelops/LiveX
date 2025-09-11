@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,16 +21,194 @@ import {
   Download,
   ZoomIn,
 } from "lucide-react";
-import { mockIssues, mockMedia, mockSummary, tabs } from "./data";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
+import { mockIssues, mockMedia } from "./data";
+
+// Types for JSON data structure
+interface VehicleData {
+  details: {
+    vehicle: {
+      vehicleId: string;
+      make: string;
+      model: string;
+      year: number | null;
+      color: string | null;
+      regNo?: string;
+      location?: string;
+      status?: string;
+    };
+    inspection: {
+      inspectionStartTime: string;
+      inspectionEndTime: string;
+      status: string;
+      summary: string;
+    };
+  };
+  condition: {
+    vehicleCondition: {
+      front: string;
+      back: string;
+      right: string;
+      lights: string;
+      odometer: string;
+      extras: {
+        [key: string]: string;
+      };
+      recommendation: string[];
+    };
+    inspectionCondition: {
+      inspectionCompleted: boolean;
+    };
+  };
+  issues?: Issue[];
+  media?: MediaItem[];
+  performanceMetrics?: PerformanceMetric[];
+  categoryBreakdown?: CategoryScore[];
+  overallScore?: number;
+}
+
+interface Issue {
+  id: string;
+  title: string;
+  description: string;
+  severity: "High" | "Medium" | "Low";
+  status: "Open" | "In Progress" | "Resolved";
+  category: string;
+}
+
+interface MediaItem {
+  id: string;
+  title: string;
+  type: "image" | "video";
+  url: string;
+  timestamp: string;
+  duration?: string;
+}
+
+interface PerformanceMetric {
+  label: string;
+  value: number;
+  icon: string;
+  color: string;
+}
+
+interface CategoryScore {
+  name: string;
+  score: number;
+  status: string;
+}
+
+// Default JSON data structure
+let defaultJsonData: VehicleData = {
+  details: {
+    vehicle: {
+      vehicleId: "",
+      make: "",
+      model: "",
+      year: null,
+      color: null,
+      regNo: "",
+      location: "",
+      status: "",
+    },
+    inspection: {
+      inspectionStartTime: "",
+      inspectionEndTime: "",
+      status: "",
+      summary: "",
+    },
+  },
+  condition: {
+    vehicleCondition: {
+      front: "",
+      back: "",
+      right: "",
+      lights: "",
+      odometer: "",
+      extras: {},
+      recommendation: [],
+    },
+    inspectionCondition: {
+      inspectionCompleted: false,
+    },
+  },
+  issues: [],
+  media: [],
+  performanceMetrics: [],
+  categoryBreakdown: [],
+  overallScore: 0,
+};
+
+const TranscriptionData = [
+  {
+    8: {
+      details: {
+        vehicle: {
+          vehicleId: "unknown",
+          make: "Honda",
+          model: "CBR 250R",
+          year: null,
+          color: null,
+        },
+        inspection: {
+          inspectionStartTime: "unknown",
+          inspectionEndTime: "unknown",
+          status: "completed",
+          summary:
+            "The Honda CBR 250R's front section appears in good condition, free of scratches or dents. The rear brake requires attention due to weakness, while the right side is satisfactory. Headlights, indicators, and the odometer are all functioning correctly. However, rust is present on the exhaust, and a slight oil leak is detected near the engine block. The tires are in good condition, but the chain needs lubrication. Overall, the bike is rideable but demands some maintenance.",
+        },
+      },
+      condition: {
+        vehicleCondition: {
+          front: "good",
+          back: "bad",
+          right: "good",
+          lights: "good",
+          odometer: "good",
+          extras: {
+            exhaustRust: "Rust present on the exhaust",
+            oilLeak: "Slight oil leak near the engine block",
+            dryChain: "Chain is dry",
+          },
+          recommendation: [
+            "Address the rear brake issue",
+            "Remove rust from the exhaust",
+            "Fix the oil leak near the engine block",
+            "Lubricate the chain",
+          ],
+        },
+        inspectionCondition: {
+          inspectionCompleted: true,
+        },
+      },
+    },
+  },
+];
+
+// Tab configuration
+
+const tabs = [
+  { id: "details", label: "Details", icon: Settings },
+  { id: "issues", label: "Issues", icon: AlertTriangle },
+  { id: "media", label: "Media", icon: Camera },
+  { id: "summary", label: "Summary", icon: Activity },
+];
+
+// Icon mapping for performance metrics
+const iconMap = {
+  Settings,
+  Fuel,
+  Battery,
+  Thermometer,
+};
 
 // Media Preview Modal Component
 const MediaPreviewModal = ({
   media,
   onClose,
 }: {
-  media: any;
+  media: MediaItem;
   onClose: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -174,9 +352,23 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
   const params = useParams();
   const vehicleId = params.id ? params.id : "";
 
-  const handleMediaClick = (item: any) => {
+  const handleMediaClick = (item: MediaItem) => {
     setPreviewMedia(item);
   };
+
+  const newData = localStorage.getItem(`T_${vehicleId}`);
+  const jsonData = newData ? JSON.parse(newData) : null;
+
+  const data = jsonData ? Object.values(jsonData[0]) : [defaultJsonData];
+  const finalData: any = data[0] ?? defaultJsonData;
+
+  // Use JSON data for vehicle information
+  const vehicleRecommendations =
+    finalData.condition.vehicleCondition.recommendation || [];
+  const vehicleSummary = finalData.details.inspection.summary || "";
+  const vehicleIssues = finalData.condition.vehicleCondition || {};
+  const vehicleDetails = finalData.details.vehicle || {};
+  const vehicleInspectionStatus = finalData.details.inspection.status || "";
 
   return (
     <>
@@ -211,6 +403,7 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
 
       <div className="mx-auto max-w-6xl">
         <AnimatePresence mode="wait">
+          {/* Details Tab */}
           {activeTab === "details" && (
             <motion.div
               key="details"
@@ -226,19 +419,35 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
                     <div className="space-y-4">
                       <h3 className="font-semibold text-lg">
                         Basic Information
                       </h3>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid md:grid-cols-4 grid-cols-2 gap-4">
                         {[
-                          { label: "Make & Model", value: bike.name },
-                          { label: "Year", value: bike.year },
-                          { label: "Color", value: bike.color },
-                          { label: "Registration", value: bike.regNo },
-                          { label: "Current Location", value: bike.location },
-                          { label: "Status", value: bike.status },
+                          {
+                            label: "Make & Model",
+                            value:
+                              vehicleDetails.make + " " + vehicleDetails.model,
+                          },
+                          { label: "Year", value: vehicleDetails.year ?? "-" },
+                          {
+                            label: "Color",
+                            value: vehicleDetails.color ?? "-",
+                          },
+                          {
+                            label: "Registration",
+                            value: vehicleDetails.regNo ?? "-",
+                          },
+                          {
+                            label: "Current Location",
+                            value: vehicleDetails.location ?? "-",
+                          },
+                          {
+                            label: "Status",
+                            value: vehicleInspectionStatus ?? "-",
+                          },
                         ].map((item, index) => (
                           <motion.div
                             key={item.label}
@@ -255,67 +464,13 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
                         ))}
                       </div>
                     </div>
-
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">
-                        Performance Metrics
-                      </h3>
-                      <div className="space-y-4">
-                        {[
-                          {
-                            label: "Engine Health",
-                            value: 92,
-                            icon: Settings,
-                            color: "text-green-600",
-                          },
-                          {
-                            label: "Fuel Efficiency",
-                            value: 78,
-                            icon: Fuel,
-                            color: "text-blue-600",
-                          },
-                          {
-                            label: "Battery Status",
-                            value: 85,
-                            icon: Battery,
-                            color: "text-purple-600",
-                          },
-                          {
-                            label: "Temperature",
-                            value: 68,
-                            icon: Thermometer,
-                            color: "text-orange-600",
-                          },
-                        ].map((metric, index) => (
-                          <motion.div
-                            key={metric.label}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="bg-gray-50 rounded-lg p-4"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <metric.icon
-                                  className={`h-4 w-4 ${metric.color}`}
-                                />
-                                <span className="font-medium">
-                                  {metric.label}
-                                </span>
-                              </div>
-                              <span className="font-bold">{metric.value}%</span>
-                            </div>
-                            <Progress value={metric.value} className="h-2" />
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           )}
 
+          {/* Issues Tab */}
           {activeTab === "issues" && (
             <motion.div
               key="issues"
@@ -327,60 +482,113 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
-                    Issues & Findings ({mockIssues.length})
+                    Issues & Findings
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockIssues.map((issue, index) => (
-                      <motion.div
-                        key={issue.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white rounded-lg border border-gray-200 p-4 cursor-pointer"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <h3 className="font-semibold text-lg">
-                            {issue.title}
-                          </h3>
-                          <div className="flex gap-2">
-                            <Badge
-                              className={
-                                severityColors[
-                                  issue.severity as keyof typeof severityColors
-                                ]
-                              }
-                            >
-                              {issue.severity}
-                            </Badge>
-                            <Badge
-                              className={
-                                statusColors[
-                                  issue.status as keyof typeof statusColors
-                                ]
-                              }
-                            >
-                              {issue.status}
-                            </Badge>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="bg-white rounded-lg border border-gray-200 p-4 cursor-pointer flex flex-col gap-5"
+                    >
+                      <div>
+                        {vehicleIssues.back && (
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-600 mb-2">Back Condition</p>
+                            <p className="text-gray-600 mb-2">
+                              {vehicleIssues.back}
+                            </p>
                           </div>
+                        )}
+                        {vehicleIssues.front && (
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-600 mb-2">
+                              Front Condition
+                            </p>
+                            <p className="text-gray-600 mb-2">
+                              {vehicleIssues.front}
+                            </p>
+                          </div>
+                        )}
+                        {vehicleIssues.lights && (
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-600 mb-2">
+                              Lights Condition
+                            </p>
+                            <p className="text-gray-600 mb-2">
+                              {vehicleIssues.lights}
+                            </p>
+                          </div>
+                        )}
+                        {vehicleIssues.odometer && (
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-600 mb-2">
+                              Odometer Condition
+                            </p>
+                            <p className="text-gray-600 mb-2">
+                              {vehicleIssues.odometer}
+                            </p>
+                          </div>
+                        )}
+                        {vehicleIssues.right && (
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-600 mb-2">
+                              Right Condition
+                            </p>
+                            <p className="text-gray-600 mb-2">
+                              {vehicleIssues.right}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border-white/60 bg-white/85 backdrop-blur rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Wrench className="h-5 w-5" />
+                          <span className="font-medium">
+                            Vehicle Other Issues
+                          </span>
                         </div>
-                        <p className="text-gray-600 mb-2">
-                          {issue.description}
-                        </p>
-                        <div className="text-sm text-gray-500">
-                          Category:{" "}
-                          <span className="font-medium">{issue.category}</span>
-                        </div>
-                      </motion.div>
-                    ))}
+
+                        {Object.keys(vehicleIssues.extras).length > 0 ? (
+                          <div className="space-y-3">
+                            {Object.entries(vehicleIssues.extras).map(
+                              ([key, description], index) => (
+                                <motion.div
+                                  key={key}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.1 }}
+                                  className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200"
+                                >
+                                  <div className="flex flex-col gap-2">
+                                    <span className="font-medium">{key}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-blue-800">
+                                        {description as string}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500">
+                            No other issues reported.
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           )}
 
+          {/* Media Tab */}
           {activeTab === "media" && (
             <motion.div
               key="media"
@@ -411,7 +619,7 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
                           transition={{ delay: index * 0.1 }}
                           whileHover={{ scale: 1.02 }}
                           className="relative bg-gray-100 rounded-lg overflow-hidden cursor-pointer group"
-                          onClick={() => handleMediaClick(item)}
+                          onClick={() => setPreviewMedia(item)}
                         >
                           <div className="aspect-video relative">
                             {isVideo ? (
@@ -484,6 +692,7 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
             </motion.div>
           )}
 
+          {/* Summary Tab */}
           {activeTab === "summary" && (
             <motion.div
               key="summary"
@@ -493,82 +702,23 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
             >
               <div className="space-y-6">
                 {/* Overall Score */}
-                <Card className="border-white/60 bg-white/85 backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Overall Vehicle Health Score
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-center">
-                      <motion.div
-                        className="relative w-32 h-32"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.3, type: "spring" }}
-                      >
-                        <div className="w-full h-full rounded-full border-8 border-gray-200 flex items-center justify-center">
-                          <div className="text-3xl font-bold text-gray-900">
-                            {mockSummary.overallScore}%
-                          </div>
-                        </div>
-                        <div
-                          className="absolute inset-0 rounded-full border-8 border-transparent border-t-green-500 border-r-green-500 transform -rotate-90"
-                          style={{
-                            borderImage: `conic-gradient(#10b981 ${
-                              mockSummary.overallScore * 3.6
-                            }deg, transparent 0deg) 1`,
-                          }}
-                        ></div>
-                      </motion.div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Category Breakdown */}
-                <Card className="border-white/60 bg-white/85 backdrop-blur">
-                  <CardHeader>
-                    <CardTitle>Category Breakdown</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {mockSummary.categories.map((category, index) => (
-                        <motion.div
-                          key={category.name}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          onHoverStart={() => setHoveredCategory(category.name)}
-                          onHoverEnd={() => setHoveredCategory(null)}
-                          className="bg-gray-50 rounded-lg p-4 cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">{category.name}</span>
-                            <motion.span
-                              className="font-bold"
-                              animate={{
-                                scale:
-                                  hoveredCategory === category.name ? 1.1 : 1,
-                                color:
-                                  hoveredCategory === category.name
-                                    ? "#059669"
-                                    : "#374151",
-                              }}
-                            >
-                              {category.score}%
-                            </motion.span>
-                          </div>
-                          <Progress value={category.score} className="mb-2" />
-                          <div className="text-sm text-gray-600">
-                            {category.status}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
+                {vehicleSummary !== "" ? (
+                  <Card className="border-white/60 bg-white/85 backdrop-blur">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5" />
+                        Summary of the Vehicle
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div>
+                        <p>{vehicleSummary}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <p>No summary available</p>
+                )}
                 {/* Recommendations */}
                 <Card className="border-white/60 bg-white/85 backdrop-blur">
                   <CardHeader>
@@ -578,20 +728,26 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {mockSummary.recommendations.map((rec, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200"
-                        >
-                          <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-                          <span className="text-blue-800">{rec}</span>
-                        </motion.div>
-                      ))}
-                    </div>
+                    {vehicleRecommendations.length > 0 ? (
+                      <div className="space-y-3">
+                        {vehicleRecommendations.map(
+                          (rec: string, index: number) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200"
+                            >
+                              <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                              <span className="text-blue-800">{rec}</span>
+                            </motion.div>
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      <p>No recommendations available.</p>
+                    )}
                   </CardContent>
                 </Card>
               </div>

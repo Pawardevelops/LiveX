@@ -156,8 +156,8 @@ export default function VehicleList() {
     });
     setIsModalOpen(false);
     if (isStartInspection) {
-      const vehicleId = bikes.length +1
-      
+      const vehicleId = bikes.length + 1;
+
       router.push(`/live?vehicleId=${vehicleId}`);
     }
   };
@@ -169,7 +169,6 @@ export default function VehicleList() {
       [field]: value,
     }));
   };
-
 
   // Function to delete a vehicle
   const deleteVehicle = (vehicleId: number) => {
@@ -233,7 +232,7 @@ export default function VehicleList() {
             <div>
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#000000_80%] via-[#ffffff_80%] to-[#000000_80%]">
-                  Po
+                  LiveX
                 </span>
               </h1>
               <p className="text-sm text-gray-600 mt-1">
