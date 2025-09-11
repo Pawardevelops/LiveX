@@ -24,7 +24,7 @@ export class GeminiWebSocket {
   private connectionTimeout: NodeJS.Timeout | null = null;
   private reconnectAttempts: number = 0;
   private opts: GeminiWSOptions;
-  
+
   // Audio queue management
   private audioQueue: Float32Array[] = [];
   private isPlaying: boolean = false;
@@ -36,29 +36,26 @@ export class GeminiWebSocket {
   private transcriptionService: TranscriptionService;
   private accumulatedPcmData: string[] = [];
   private lastImageBase64: string | null = null;
-  private indexForLabel : number | 0
-  private imageLables : string[] | []
+  private indexForLabel: number | 0
+  private imageLables: string[] | []
+  // inside GeminiWebSocket
+  private imageBuffer: { timestamp: number; base64: string }[] = [];
+  private IMAGE_BUFFER_DURATION = 5000; // keep last 5s of images
+
   private VehicleId: string | ""
-  private stopVideoRecordingAndRedirect : () => void
-  private downloadBase64Image(data: string, filename: string) {
-  const link = document.createElement('a');
-  link.href = 'data:image/jpeg;base64,' + data;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+  private stopVideoRecordingAndRedirect: () => void
+
 
 
   constructor(
-    onMessage: (text: string) => void, 
+    onMessage: (text: string) => void,
     onSetupComplete: () => void,
     onPlayingStateChange: (isPlaying: boolean) => void,
     onAudioLevelChange: (level: number) => void,
     onTranscription: (text: string) => void,
     opts: GeminiWSOptions = {},
-    imageLables:string[],
-    VehicleId:string,
+    imageLables: string[],
+    VehicleId: string,
     stopVideoRecordingAndRedirect: () => void
   ) {
     this.onMessageCallback = onMessage;
@@ -69,7 +66,7 @@ export class GeminiWebSocket {
     this.VehicleId = VehicleId;
     this.opts = opts;
     this.imageLables = imageLables
-    this.indexForLabel=0
+    this.indexForLabel = 0
     // Create AudioContext for playback
     this.audioContext = new AudioContext({
       sampleRate: 24000  // Match the response audio rate
@@ -87,7 +84,7 @@ export class GeminiWebSocket {
     if (this.ws?.readyState === WebSocket.OPEN) {
       return;
     }
-    
+
     try {
       this.ws = new WebSocket(WS_URL);
       this.connectionTimeout = setTimeout(() => {
@@ -121,7 +118,7 @@ export class GeminiWebSocket {
         } else {
           messageText = event.data;
         }
-        
+
         await this.handleMessage(messageText);
       } catch (error) {
         console.error("[WebSocket] Error processing message:", error);
@@ -138,7 +135,7 @@ export class GeminiWebSocket {
         clearTimeout(this.connectionTimeout);
         this.connectionTimeout = null;
       }
-      
+
       // Only attempt to reconnect if we haven't explicitly called disconnect
       if (!event.wasClean && this.isSetupComplete) {
         this.reconnectAttempts++;
@@ -149,33 +146,33 @@ export class GeminiWebSocket {
     };
   }
 
-  
-private sendInitialSetup() {
 
-  const setupMessage: any = {
-    setup: {
-      model: MODEL,
-      generation_config: {
-        response_modalities: ["AUDIO"], // or ["AUDIO", "TEXT"] for text streaming too
-      },
-      tools: [{
-        function_declarations: [
-          {
-            name: "sayHelloWorld",
-            description: "Logs Hello world to the console.",
-            parameters: { type: "object", properties: {} }
-          }
-        ]
-      }]
-    }
-  };
-  if (this.opts.instructions) {
-    setupMessage.setup.system_instruction = {
-      parts: [{ text: this.opts.instructions }]
+  private sendInitialSetup() {
+
+    const setupMessage: any = {
+      setup: {
+        model: MODEL,
+        generation_config: {
+          response_modalities: ["AUDIO"],
+        },
+        tools: [{
+          function_declarations: [
+            {
+              name: "sayHelloWorld",
+              description: "Logs Hello world to the console.",
+              parameters: { type: "object", properties: {} }
+            }
+          ]
+        }]
+      }
     };
+    if (this.opts.instructions) {
+      setupMessage.setup.system_instruction = {
+        parts: [{ text: this.opts.instructions }]
+      };
+    }
+    this.ws?.send(JSON.stringify(setupMessage));
   }
-  this.ws?.send(JSON.stringify(setupMessage));
-}
 
 
   requestResponse(extra?: Record<string, any>) {
@@ -201,7 +198,6 @@ private sendInitialSetup() {
 
     this.ws.send(JSON.stringify(message));
   }
-
   sendMediaChunk(b64Data: string, mimeType: string) {
     if (!this.isConnected || !this.ws || !this.isSetupComplete) return;
 
@@ -216,6 +212,15 @@ private sendInitialSetup() {
 
     if (mimeType === "image/jpeg") {
       this.lastImageBase64 = b64Data;
+
+      // 🔹 push into buffer
+      const now = Date.now();
+      this.imageBuffer.push({ timestamp: now, base64: b64Data });
+
+      // keep buffer within duration
+      this.imageBuffer = this.imageBuffer.filter(
+        img => now - img.timestamp <= this.IMAGE_BUFFER_DURATION
+      );
     }
 
     try {
@@ -223,6 +228,19 @@ private sendInitialSetup() {
     } catch (error) {
       console.error("[WebSocket] Error sending media chunk:", error);
     }
+  }
+
+  private getImageFrom1_5SecondsAgo(): string | null {
+    const targetTime = Date.now() - 1500; // 1.5 seconds ago
+    let closest: { timestamp: number; base64: string } | null = null;
+
+    for (const img of this.imageBuffer) {
+      if (!closest || Math.abs(img.timestamp - targetTime) < Math.abs(closest.timestamp - targetTime)) {
+        closest = img;
+      }
+    }
+
+    return closest ? closest.base64 : null;
   }
 
   private async playAudioResponse(base64Data: string) {
@@ -238,7 +256,7 @@ private sendInitialSetup() {
 
       // Convert to Int16Array (PCM format)
       const pcmData = new Int16Array(bytes.buffer);
-      
+
       // Convert to float32 for Web Audio API
       const float32Data = new Float32Array(pcmData.length);
       for (let i = 0; i < pcmData.length; i++) {
@@ -280,7 +298,7 @@ private sendInitialSetup() {
       this.currentSource = this.audioContext.createBufferSource();
       this.currentSource.buffer = audioBuffer;
       this.currentSource.connect(this.audioContext.destination);
-      
+
       this.currentSource.onended = () => {
         this.isPlaying = false;
         this.currentSource = null;
@@ -321,28 +339,27 @@ private sendInitialSetup() {
     console.log("handle")
     try {
       const messageData = JSON.parse(message);
-      console.log("message",messageData)
+      console.log("message", messageData)
       if (messageData.setupComplete) {
         this.isSetupComplete = true;
         this.onSetupCompleteCallback?.();
         return;
       }
 
-          if (messageData.toolCall) {
-      const toolCall = messageData.toolCall;
-      toolCall.functionCalls?.forEach((fc: any) => {
-        if (fc.name === "sayHelloWorld") {
-          console.log("Hello world");  // <-- do your side effect
-          // Always respond to the tool call:
-          this.ws?.send(JSON.stringify({
-            toolResponse: {
-              toolUseId: toolCall.id,
-              response: { result: "ok" }
-            }
-          }));
-        }
-      });
-    }
+      if (messageData.toolCall) {
+        const toolCall = messageData.toolCall;
+        toolCall.functionCalls?.forEach((fc: any) => {
+          if (fc.name === "sayHelloWorld") {
+            // Always respond to the tool call:
+            this.ws?.send(JSON.stringify({
+              toolResponse: {
+                toolUseId: toolCall.id,
+                response: { result: "ok" }
+              }
+            }));
+          }
+        });
+      }
 
 
       // Handle audio data
@@ -362,7 +379,7 @@ private sendInitialSetup() {
           try {
             const fullPcmData = this.accumulatedPcmData.join('');
             const wavData = await pcmToWav(fullPcmData, 24000);
-            
+
             const transcription = await this.transcriptionService.transcribeAudio(
               wavData,
               "audio/wav"
@@ -370,16 +387,26 @@ private sendInitialSetup() {
 
             console.log("Transcription", transcription);
             console.log(typeof transcription);
-            
-            if(transcription.toLowerCase().includes("inspection completed")){
+
+            if (transcription.toLowerCase().includes("inspection completed")) {
               this.disconnect()
               this.stopVideoRecordingAndRedirect()
-             
+
             }
-            if(["good image", "captured"].some(word => transcription.toLowerCase().includes(word))){
-              s3Upload(this.lastImageBase64,process.env.NEXT_PUBLIC_AWS_S3_BUCKET,`${this.VehicleId}/${this.imageLables[this.indexForLabel]}`)
-              this.indexForLabel++
+            if (["good image", "captured"].some(word => transcription.toLowerCase().includes(word))) {
+              const imgToSave = this.getImageFrom1_5SecondsAgo();
+              if (imgToSave) {
+                s3Upload(
+                  imgToSave,
+                  process.env.NEXT_PUBLIC_AWS_S3_BUCKET,
+                  `${this.VehicleId}/${this.imageLables[this.indexForLabel]}`
+                );
+                this.indexForLabel++;
+              } else {
+                console.warn("[WebSocket] No image found from 1.5s earlier");
+              }
             }
+
             this.onTranscriptionCallback?.(transcription);
             this.accumulatedPcmData = []; // Clear accumulated data
           } catch (error) {

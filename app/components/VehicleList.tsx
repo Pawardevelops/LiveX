@@ -26,6 +26,7 @@ import {
 import { Bike, Search, Filter, Plus, X } from "lucide-react";
 import DetailsSection from "./DetailsSection";
 import VehicleCardSection from "./VehicleCardSection";
+import { DetailService } from "../services/summary";
 
 type VehicleStatus = "Pending" | "In Progress" | "Completed";
 
@@ -96,6 +97,23 @@ export default function VehicleList() {
     odoKm: "",
     location: "",
   });
+
+    useEffect(() => {
+    const fetchData = async () => {
+      console.log("inside");
+      
+      const detail = new DetailService();
+      console.log("detail",detail);
+      
+      const txt = await detail.summary();
+      console.log("txt",txt); // ✅ Actual resolved value
+      // setData(txt);
+      
+    };
+    fetchData();
+  }, []);
+
+  console.log("here");
 
   // Load bikes from localStorage on component mount
   useEffect(() => {
