@@ -53,13 +53,11 @@ const AudioVisualizer = ({
     <div className="flex items-center justify-center gap-1 h-8 w-8">{bars}</div>
   );
 };
-
 export default function CameraPreview({
   onTranscription,
   onToggleChat,
 }: CameraPreviewProps) {
   const router = useRouter();
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -196,7 +194,7 @@ export default function CameraPreview({
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current?.stop();
     }
-    window.location.assign("/vehicles")
+    window.location.assign("/vehicles");
   };
 
   const getMedia = async (mode: FacingMode) => {
@@ -357,7 +355,7 @@ export default function CameraPreview({
         setConnectionStatus("connected");
       },
       (isPlaying) => setIsModelSpeaking(isPlaying),
-      (level) => setOutputAudioLevel(level),
+      (level) => {},
       handleTranscription,
       { instructions: INSTRUCTIONS },
       [
