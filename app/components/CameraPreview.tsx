@@ -4,18 +4,14 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
-
-import { Video, VideoOff, Zap, RefreshCcw, MessageSquareText, X } from "lucide-react";
-import { GeminiWebSocket } from '../services/geminiWebSocket';
-import { Base64 } from 'js-base64';
-import { s3UploadVideo } from '../utils/s3upload';
-
-import { buildStepInstruction, CheckpointTree } from "../prompts/inspector";
-
-
+import { Zap, RefreshCcw, X } from "lucide-react";
+import { GeminiWebSocket } from "../services/geminiWebSocket";
+import { Base64 } from "js-base64";
+import { s3UploadVideo } from "../utils/s3upload";
+import { buildStepInstruction } from "../prompts/inspector";
+import { SparklesCore } from "@/components/ui/sparkles";
 
 const INSTRUCTIONS = buildStepInstruction(null);
-
 
 interface CameraPreviewProps {
   onTranscription: (text: string) => void;
@@ -64,7 +60,6 @@ export default function CameraPreview({
   onToggleChat,
 }: CameraPreviewProps) {
   const router = useRouter();
-  const [count,setCount]= useState(0)
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -77,7 +72,7 @@ export default function CameraPreview({
   const geminiWsRef = useRef<GeminiWebSocket | null>(null);
   const videoCanvasRef = useRef<HTMLCanvasElement>(null);
   const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder|null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const [isAudioSetup, setIsAudioSetup] = useState(false);
   const setupInProgressRef = useRef(false);
@@ -166,8 +161,6 @@ export default function CameraPreview({
     }
     setStream(null);
   };
-
-
   const startVideoRecording = (videoStream: MediaStream) => {
     // 2. Create MediaRecorder
     const recordedChunks: Blob[] = [];
@@ -188,20 +181,23 @@ export default function CameraPreview({
     mediaRecorderRef.current.onstop = async () => {
       const blob = new Blob(recordedChunks, { type: "video/webm" });
 
-
       // Create a download link
-      const url = await s3UploadVideo(blob, process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "", (new URLSearchParams(window.location.search).get("vehicleId") || ""), "walkaround");
+      const url = await s3UploadVideo(
+        blob,
+        process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "",
+        new URLSearchParams(window.location.search).get("vehicleId") || "",
+        "walkaround"
+      );
 
-      window.location.assign("/vehicles?v=success")
+      window.location.assign("/vehicles?v=success");
     };
-
   };
 
   const stopVideoRecordingAndRedirect = () => {
-    if(mediaRecorderRef.current){
-       mediaRecorderRef.current?.stop();
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current?.stop();
     }
-  }
+  };
 
   const getMedia = async (mode: FacingMode) => {
     const videoStream = await navigator.mediaDevices.getUserMedia({
@@ -213,7 +209,7 @@ export default function CameraPreview({
       audio: false,
     });
 
-    startVideoRecording(videoStream)
+    startVideoRecording(videoStream);
 
     const audioStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -321,21 +317,28 @@ export default function CameraPreview({
     router.back();
   };
 
-
-  const handleTranscription = useCallback((text: string) => {
-    const normalise = (s: string) => s.toLowerCase();
-    const t = normalise(text);
-    // tyer/tyre/tire variants
-    if (/(front).*(tyre|tire|tyer)/.test(t)) {
-      geminiWsRef.current?.sendClientEvent("user_asserts_view", { section: "front", item: "tyre" });
-    }
-    if (/(rear|back).*(tyre|tire|tyer)/.test(t)) {
-      geminiWsRef.current?.sendClientEvent("user_asserts_view", { section: "back", item: "tyre" });
-    }
-    // then keep your existing message handling
-    onTranscription(text);
-  }, [onTranscription]);
-
+  const handleTranscription = useCallback(
+    (text: string) => {
+      const normalise = (s: string) => s.toLowerCase();
+      const t = normalise(text);
+      // tyer/tyre/tire variants
+      if (/(front).*(tyre|tire|tyer)/.test(t)) {
+        geminiWsRef.current?.sendClientEvent("user_asserts_view", {
+          section: "front",
+          item: "tyre",
+        });
+      }
+      if (/(rear|back).*(tyre|tire|tyer)/.test(t)) {
+        geminiWsRef.current?.sendClientEvent("user_asserts_view", {
+          section: "back",
+          item: "tyre",
+        });
+      }
+      // then keep your existing message handling
+      onTranscription(text);
+    },
+    [onTranscription]
+  );
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -357,10 +360,17 @@ export default function CameraPreview({
       (level) => setOutputAudioLevel(level),
       handleTranscription,
       { instructions: INSTRUCTIONS },
-      ["front_tyer","front_tyre_gauge","right_photo","back_photo","back_tyre_gauge","left_photo","odometer_value"],
-      (new URLSearchParams(window.location.search).get("vehicleId") || ""),
+      [
+        "front_tyre",
+        "front_tyre_gauge",
+        "right_photo",
+        "back_photo",
+        "back_tyre_gauge",
+        "left_photo",
+        "odometer_value",
+      ],
+      new URLSearchParams(window.location.search).get("vehicleId") || "",
       stopVideoRecordingAndRedirect
-
     );
     geminiWsRef.current = ws;
     ws.connect();
@@ -394,9 +404,8 @@ export default function CameraPreview({
 
       ctx.drawImage(videoRef.current, 0, 0, w, h);
 
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      const b64Data = imageData.split(',')[1];
-
+      const imageData = canvas.toDataURL("image/jpeg", 0.8);
+      const b64Data = imageData.split(",")[1];
 
       geminiWsRef.current.sendMediaChunk(b64Data, "image/jpeg");
     };
@@ -409,8 +418,6 @@ export default function CameraPreview({
       }
     };
   }, [isStreaming, isWebSocketReady]);
-
-
 
   // Audio processing (worklet) setup
   useEffect(() => {

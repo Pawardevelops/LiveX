@@ -26,7 +26,7 @@ type VehicleStatus = "Pending" | "In Progress" | "Completed";
 
 const VehicleCardSection = ({ filtered }: { filtered: any }) => {
   const router = useRouter();
-  const handleStartLive = (id:any) => router.push(`/live?vehicleId=${id}`);
+  const handleStartLive = (id: any) => router.push(`/live?vehicleId=${id}`);
   const handleBikeClick = (id: number) => {
     router.push(`/vehicles/${id}`);
   };
@@ -84,9 +84,12 @@ const VehicleCardSection = ({ filtered }: { filtered: any }) => {
               <div className="relative w-full h-36 rounded-lg overflow-hidden bg-gray-100">
                 {bike.thumb ? (
                   <img
-                    src={bike.thumb}
+                    src={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${bike.id}/right_photo.png`}
                     alt={`${bike.name} photo`}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = bike.thumb || "/default-image.png";
+                    }}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-gray-400 group-hover:text-gray-600 transition-colors">

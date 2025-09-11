@@ -1,12 +1,10 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
   Bike as BikeIcon,
@@ -86,6 +84,8 @@ const statusStyles: Record<Vehicle["status"], string> = {
 
 export default function VehicleDetails({ bikeId }: { bikeId: string }) {
   const router = useRouter();
+  const params = useParams();
+  const vehicleId = params.id ? params.id : "";
   const loadedBikes = loadBikesFromStorage();
   const bike = loadedBikes.find((b) => b.id === parseInt(bikeId));
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
@@ -163,9 +163,13 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
                 >
                   {bike.thumb ? (
                     <img
-                      src={bike.thumb}
+                      src={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${bike.id}/right_photo.png`}
                       alt={`${bike.name} photo`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.src =
+                          bike.thumb || "/default-image.png";
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -250,7 +254,7 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
       {/* Tab Navigation */}
 
       {/* Tab Content */}
-      <VehicleDetailsTabView bike={bike} setSelectedMedia={setSelectedMedia} />
+      <VehicleDetailsTabView bike={bike} />
 
       {/* Media Modal */}
       <AnimatePresence>

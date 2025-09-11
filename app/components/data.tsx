@@ -127,34 +127,65 @@ export const mockIssues = [
 ];
 
 // Mock media data
-export const mockMedia = [
+export const mockMedia = (vehicleId: any) => [
+  // FRONT
   {
     id: 1,
-    type: "image",
-    title: "Engine Bay",
-    url: "/images/engine.jpg",
-    timestamp: "2025-09-10T10:30:00",
-  },
-  {
-    id: 2,
-    type: "video",
-    title: "Brake Test",
-    url: "/videos/brake-test.mp4",
-    duration: "2:45",
-    timestamp: "2025-09-10T11:15:00",
-  },
-  {
-    id: 3,
-    type: "image",
-    title: "Dashboard",
-    url: "/images/dashboard.jpg",
+
+    type: "front_tyre",
+    title: "Front Tyre",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/front_tyre.png`,
     timestamp: "2025-09-10T10:45:00",
   },
   {
+    id: 2,
+    type: "front_tyre_gauge",
+    title: "Front Tyre Gauge",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/front_tyre_gauge.png`,
+    duration: "5:20",
+    timestamp: "2025-09-10T12:00:00",
+  },
+  // RIGHT
+  {
+    id: 3,
+    type: "right_photo",
+    title: "Right Photo",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/right_photo.png`,
+    duration: "5:20",
+    timestamp: "2025-09-10T12:00:00",
+  },
+  {
     id: 4,
+    type: "right_photo",
+    title: "Right Photo",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/right_photo.png`,
+    duration: "5:20",
+    timestamp: "2025-09-10T12:00:00",
+  },
+  // BACK
+  {
+    id: 5,
+    type: "back_photo",
+    title: "Back Photo",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/back_photo.png`,
+    timestamp: "2025-09-10T10:30:00",
+  },
+  {
+    id: 6,
+    type: "back_tyre_gauge",
+    title: "Back Tyre Gauge",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/back_tyre_gauge.png`,
+    duration: "2:45",
+    timestamp: "2025-09-10T11:15:00",
+  },
+  // LEFT (you may need to add left items here if you have any)
+
+  // VIDEO
+  {
+    id: 7,
     type: "video",
-    title: "Road Test",
-    url: "/videos/road-test.mp4",
+    title: "Inspection Video",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/videos/walkaround.webm`,
     duration: "5:20",
     timestamp: "2025-09-10T12:00:00",
   },
