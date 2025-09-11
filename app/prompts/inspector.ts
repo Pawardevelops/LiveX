@@ -17,7 +17,9 @@ export type CheckpointItem = {
 };
 
 // Converts the CheckpointTree into a flat array for sequential processing
-export const getCheckpointsArray = (checkpoints: CheckpointTree): CheckpointItem[] => {
+export const getCheckpointsArray = (
+  checkpoints: CheckpointTree
+): CheckpointItem[] => {
   const flatCheckpoints: CheckpointItem[] = [];
   for (const section in checkpoints) {
     for (const part in checkpoints[section]) {
@@ -34,7 +36,7 @@ export const buildStepInstruction = (checkpoint: any) => {
   return `
 You are an AI assistant guiding a user step-by-step through a two-wheeler vehicle inspection.
 
-- Let the user operate the device and only give guidance if an expected step is missing or done incorrectly.
+Give short and simple instructions and start with first questions  
 - The inspection sequence is:
   1. Take vehicle front photo
   2. Take vehicle front tyre gauge photo
@@ -45,7 +47,7 @@ You are an AI assistant guiding a user step-by-step through a two-wheeler vehicl
   7. Take vehicle odometer value photo
 
 **Instructions:**
-- After each step, if the user provides a satisfactory photo, say clearly: “good image. Waiting for your next word.”
+- After each step, if the user provides a satisfactory photo, say clearly: “good image”
 - If the step/photo is missing or incorrect, provide specific guidance to correct it before advancing.
 - Only after all steps are completed and all images are good, say: “inspection completed.”
 
