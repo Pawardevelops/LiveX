@@ -9,6 +9,7 @@ import { GeminiWebSocket } from "../services/geminiWebSocket";
 import { Base64 } from "js-base64";
 import { s3UploadVideo } from "../utils/s3upload";
 import { buildStepInstruction } from "../prompts/inspector";
+import { DetailService } from "../services/summary";
 
 const INSTRUCTIONS = buildStepInstruction(null);
 
@@ -185,7 +186,7 @@ export default function CameraPreview({
         new URLSearchParams(window.location.search).get("vehicleId") || "",
         "walkaround"
       );
-
+      new DetailService().summary(new URLSearchParams(window.location.search).get("vehicleId") || "");
       window.location.assign("/vehicles?v=success");
     };
   };
@@ -194,7 +195,9 @@ export default function CameraPreview({
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current?.stop();
     }
-    window.location.assign("/vehicles");
+      new DetailService().summary(new URLSearchParams(window.location.search).get("vehicleId") || "");
+
+    window.location.assign("/vehicles?v=success");
   };
 
   const getMedia = async (mode: FacingMode) => {

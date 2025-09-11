@@ -97,6 +97,10 @@ export default function VehicleList() {
     location: "",
   });
 
+
+
+  console.log("here");
+
   // Load bikes from localStorage on component mount
   useEffect(() => {
     const loadedBikes = loadBikesFromStorage();
