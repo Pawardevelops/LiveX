@@ -450,7 +450,7 @@ export default function CameraPreview({
         node.port.onmessage = (event) => {
           if (!isActive || isModelSpeaking) return;
           const { pcmData, level } = event.data;
-          if (typeof level === "number") setAudioLevel(level); // 0..100
+          // if (typeof level === "number") setAudioLevel(level); // 0..100
           if (pcmData) {
             const pcmArray = new Uint8Array(pcmData);
             const b64Data = Base64.fromUint8Array(pcmArray);
