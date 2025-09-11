@@ -34,7 +34,7 @@ export default function AssistantPage() {
 
     ws.current.onmessage = (event) => {
       const data = JSON.parse(event.data as string);
-      console.log('Received from WebSocket:', data);
+
 
       if (data.type === 'status') {
         setMessages((prev) => [...prev, { type: 'gemini', content: `Status: ${data.message}` }]);

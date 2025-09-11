@@ -156,7 +156,9 @@ export default function VehicleList() {
     });
     setIsModalOpen(false);
     if (isStartInspection) {
-      router.push("/live");
+      const vehicleId = bikes.length +1
+      
+      router.push(`/live?vehicleId=${vehicleId}`);
     }
   };
 
@@ -167,6 +169,7 @@ export default function VehicleList() {
       [field]: value,
     }));
   };
+
 
   // Function to delete a vehicle
   const deleteVehicle = (vehicleId: number) => {

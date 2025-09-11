@@ -196,6 +196,7 @@ export default function CameraPreview({
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current?.stop();
     }
+    window.location.assign("/vehicles")
   };
 
   const getMedia = async (mode: FacingMode) => {

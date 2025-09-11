@@ -376,10 +376,7 @@ private sendInitialSetup() {
               this.stopVideoRecordingAndRedirect()
              
             }
-            console.log("transcription",transcription,transcription.toLocaleLowerCase().includes("good image"));
-            if(transcription.toLocaleLowerCase().includes("good image")){
-
-
+            if(["good image", "captured"].some(word => transcription.toLowerCase().includes(word))){
               s3Upload(this.lastImageBase64,process.env.NEXT_PUBLIC_AWS_S3_BUCKET,`${this.VehicleId}/${this.imageLables[this.indexForLabel]}`)
               this.indexForLabel++
             }
