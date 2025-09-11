@@ -10,7 +10,6 @@ import {
   CheckCircle,
   Camera,
   Video,
-  Eye,
   Play,
   Settings,
   Activity,
@@ -18,19 +17,147 @@ import {
   Fuel,
   Battery,
   Thermometer,
+  X,
+  Download,
+  ZoomIn,
 } from "lucide-react";
 import { mockIssues, mockMedia, mockSummary, tabs } from "./data";
 import { Button } from "@/components/ui/button";
+import { useParams } from "next/navigation";
 
-const VehicleDetailsTabView = ({
-  bike,
-  setSelectedMedia,
+// Media Preview Modal Component
+const MediaPreviewModal = ({
+  media,
+  onClose,
 }: {
-  bike: any;
-  setSelectedMedia: (media: any) => void;
+  media: any;
+  onClose: () => void;
 }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const isVideo =
+    media.type === "video" ||
+    media.url.includes(".webm") ||
+    media.url.includes(".mp4");
+
+  const handleMediaLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleMediaError = () => {
+    setIsLoading(false);
+    setHasError(true);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.5, opacity: 0 }}
+        className="relative max-w-4xl max-h-[90vh] w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-white">
+            <h3 className="text-xl font-semibold">{media.title}</h3>
+            <p className="text-white/70 text-sm">
+              {new Date(media.timestamp).toLocaleString()}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={() => window.open(media.url, "_blank")}
+              className="bg-white/10 hover:bg-white/20 text-white border-0"
+              title="Download"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={onClose}
+              className="bg-white/10 hover:bg-white/20 text-white border-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Media Content */}
+        <div className="relative bg-black rounded-lg overflow-hidden">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            </div>
+          )}
+
+          {hasError ? (
+            <div className="aspect-video flex items-center justify-center bg-gray-900 text-white">
+              <div className="text-center">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-400" />
+                <p className="text-lg mb-2">Failed to load media</p>
+                <p className="text-sm text-gray-400">
+                  The file might not be available
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => window.open(media.url, "_blank")}
+                >
+                  Try Direct Link
+                </Button>
+              </div>
+            </div>
+          ) : isVideo ? (
+            <video
+              src={media.url}
+              controls
+              className="w-full max-h-[70vh] object-contain"
+              onLoadedData={handleMediaLoad}
+              onError={handleMediaError}
+              preload="metadata"
+            >
+              Your browser does not support the video tag.
+            </video>
+          ) : (
+            <img
+              src={media.url}
+              alt={media.title}
+              className="w-full max-h-[70vh] object-contain"
+              onLoad={handleMediaLoad}
+              onError={handleMediaError}
+            />
+          )}
+        </div>
+
+        {/* Media Info */}
+        <div className="mt-4 text-white/80 text-sm">
+          <div className="flex items-center justify-between">
+            <span>Type: {media.type}</span>
+            {media.duration && <span>Duration: {media.duration}</span>}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
   const [activeTab, setActiveTab] = useState("details");
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<any>(null);
 
   const severityColors = {
     High: "text-red-600 bg-red-50",
@@ -42,6 +169,13 @@ const VehicleDetailsTabView = ({
     Open: "text-red-600 bg-red-50",
     "In Progress": "text-blue-600 bg-blue-50",
     Resolved: "text-green-600 bg-green-50",
+  };
+
+  const params = useParams();
+  const vehicleId = params.id ? params.id : "";
+
+  const handleMediaClick = (item: any) => {
+    setPreviewMedia(item);
   };
 
   return (
@@ -74,6 +208,7 @@ const VehicleDetailsTabView = ({
           </CardContent>
         </Card>
       </motion.div>
+
       <div className="mx-auto max-w-6xl">
         <AnimatePresence mode="wait">
           {activeTab === "details" && (
@@ -257,50 +392,92 @@ const VehicleDetailsTabView = ({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Camera className="h-5 w-5" />
-                    Images & Videos ({mockMedia.length})
+                    Images & Videos ({mockMedia(vehicleId).length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {mockMedia.map((item, index) => (
-                      <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                        className="relative bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
-                        onClick={() => setSelectedMedia(item)}
-                      >
-                        <div className="aspect-video flex items-center justify-center">
-                          {item.type === "image" ? (
-                            <Camera className="h-8 w-8 text-gray-400" />
-                          ) : (
-                            <div className="flex flex-col items-center">
-                              <Video className="h-8 w-8 text-gray-400 mb-2" />
-                              <Badge variant="outline">{item.duration}</Badge>
-                            </div>
-                          )}
-                        </div>
-                        <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
-                          <div className="opacity-0 hover:opacity-100 transition-opacity">
-                            {item.type === "image" ? (
-                              <Eye className="h-6 w-6 text-white" />
+                    {mockMedia(vehicleId).map((item, index) => {
+                      const isVideo =
+                        item.type === "video" ||
+                        item.url.includes(".webm") ||
+                        item.url.includes(".mp4");
+
+                      return (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.1 }}
+                          whileHover={{ scale: 1.02 }}
+                          className="relative bg-gray-100 rounded-lg overflow-hidden cursor-pointer group"
+                          onClick={() => handleMediaClick(item)}
+                        >
+                          <div className="aspect-video relative">
+                            {isVideo ? (
+                              <div className="w-full h-full bg-black flex items-center justify-center">
+                                <video
+                                  src={item.url}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  preload="metadata"
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <Play className="h-12 w-12 text-white" />
+                                </div>
+                              </div>
                             ) : (
-                              <Play className="h-6 w-6 text-white" />
+                              <div className="w-full h-full relative">
+                                <img
+                                  src={item.url}
+                                  alt={`${bike.name} photo`}
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  onError={(e) => {
+                                    e.currentTarget.src =
+                                      "https://ik.imagekit.io/drivex/ik_productlisting/MotorcyclePlaceholder.jpg?tr=f-avif";
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                              </div>
                             )}
                           </div>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 p-3">
-                          <div className="text-white text-sm font-medium">
-                            {item.title}
+
+                          {/* Overlay Info */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3">
+                            <div className="text-white text-sm font-medium mb-1">
+                              {item.title}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="text-white/70 text-xs">
+                                {new Date(item.timestamp).toLocaleDateString()}
+                              </div>
+                              {item.duration && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {item.duration}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-white/70 text-xs">
-                            {new Date(item.timestamp).toLocaleString()}
+
+                          {/* Type Badge */}
+                          <div className="absolute top-2 right-2">
+                            {isVideo ? (
+                              <Badge className="bg-red-500 hover:bg-red-600">
+                                <Video className="h-3 w-3 mr-1" />
+                                Video
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-blue-500 hover:bg-blue-600">
+                                <Camera className="h-3 w-3 mr-1" />
+                                Photo
+                              </Badge>
+                            )}
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -422,6 +599,16 @@ const VehicleDetailsTabView = ({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Media Preview Modal */}
+      <AnimatePresence>
+        {previewMedia && (
+          <MediaPreviewModal
+            media={previewMedia}
+            onClose={() => setPreviewMedia(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

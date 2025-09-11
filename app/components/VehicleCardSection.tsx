@@ -26,7 +26,7 @@ type VehicleStatus = "Pending" | "In Progress" | "Completed";
 
 const VehicleCardSection = ({ filtered }: { filtered: any }) => {
   const router = useRouter();
-  const handleStartLive = () => router.push("/live");
+  const handleStartLive = (id: any) => router.push(`/live?vehicleId=${id}`);
   const handleBikeClick = (id: number) => {
     router.push(`/vehicles/${id}`);
   };
@@ -84,9 +84,12 @@ const VehicleCardSection = ({ filtered }: { filtered: any }) => {
               <div className="relative w-full h-36 rounded-lg overflow-hidden bg-gray-100">
                 {bike.thumb ? (
                   <img
-                    src={bike.thumb}
+                    src={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${bike.id}/right_photo.png`}
                     alt={`${bike.name} photo`}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = bike.thumb || "/default-image.png";
+                    }}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-gray-400 group-hover:text-gray-600 transition-colors">
@@ -131,7 +134,7 @@ const VehicleCardSection = ({ filtered }: { filtered: any }) => {
                 className="h-7 text-xs mt-3 p-4 rounded-full border border-gray-200 hover:border-gray-300"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStartLive();
+                  handleStartLive(bike.id);
                 }}
               >
                 <Radio className="mr-2 h-4 w-4" />

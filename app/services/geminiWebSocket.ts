@@ -1,11 +1,14 @@
 import { Base64 } from 'js-base64';
 import { TranscriptionService } from './transcriptionService';
 import { pcmToWav } from '../utils/audioUtils';
+import { s3Upload } from '../utils/s3upload';
 
 const MODEL = "models/gemini-2.0-flash-exp";
-const API_KEY = "AIzaSyC30i-5F-IIT95Hd4eazVEiW0Nq2_59qLc";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const HOST = "generativelanguage.googleapis.com";
 const WS_URL = `wss://${HOST}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${API_KEY}`;
+
+
 
 type GeminiWSOptions = {
   instructions?: string;
@@ -32,6 +35,20 @@ export class GeminiWebSocket {
   private onTranscriptionCallback: ((text: string) => void) | null = null;
   private transcriptionService: TranscriptionService;
   private accumulatedPcmData: string[] = [];
+  private lastImageBase64: string | null = null;
+  private indexForLabel : number | 0
+  private imageLables : string[] | []
+  private VehicleId: string | ""
+  private stopVideoRecordingAndRedirect : () => void
+  private downloadBase64Image(data: string, filename: string) {
+  const link = document.createElement('a');
+  link.href = 'data:image/jpeg;base64,' + data;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 
   constructor(
     onMessage: (text: string) => void, 
@@ -39,19 +56,26 @@ export class GeminiWebSocket {
     onPlayingStateChange: (isPlaying: boolean) => void,
     onAudioLevelChange: (level: number) => void,
     onTranscription: (text: string) => void,
-    opts: GeminiWSOptions = {}
+    opts: GeminiWSOptions = {},
+    imageLables:string[],
+    VehicleId:string,
+    stopVideoRecordingAndRedirect: () => void
   ) {
     this.onMessageCallback = onMessage;
     this.onSetupCompleteCallback = onSetupComplete;
     this.onPlayingStateChange = onPlayingStateChange;
     this.onAudioLevelChange = onAudioLevelChange;
     this.onTranscriptionCallback = onTranscription;
+    this.VehicleId = VehicleId;
     this.opts = opts;
+    this.imageLables = imageLables
+    this.indexForLabel=0
     // Create AudioContext for playback
     this.audioContext = new AudioContext({
       sampleRate: 24000  // Match the response audio rate
     });
     this.transcriptionService = new TranscriptionService();
+    this.stopVideoRecordingAndRedirect = stopVideoRecordingAndRedirect
   }
 
   connect() {
@@ -125,22 +149,34 @@ export class GeminiWebSocket {
     };
   }
 
-  private sendInitialSetup() {
-    const setupMessage: any = {
-      setup: {
-        model: MODEL,
-        generation_config: {
-          response_modalities: ["AUDIO"] 
-        }
-      }
-    };
-    if (this.opts.instructions) {
-      setupMessage.setup.system_instruction = {
-        parts: [{ text: this.opts.instructions }]
-      };
+  
+private sendInitialSetup() {
+
+  const setupMessage: any = {
+    setup: {
+      model: MODEL,
+      generation_config: {
+        response_modalities: ["AUDIO"], // or ["AUDIO", "TEXT"] for text streaming too
+      },
+      tools: [{
+        function_declarations: [
+          {
+            name: "sayHelloWorld",
+            description: "Logs Hello world to the console.",
+            parameters: { type: "object", properties: {} }
+          }
+        ]
+      }]
     }
-    this.ws?.send(JSON.stringify(setupMessage));
+  };
+  if (this.opts.instructions) {
+    setupMessage.setup.system_instruction = {
+      parts: [{ text: this.opts.instructions }]
+    };
   }
+  this.ws?.send(JSON.stringify(setupMessage));
+}
+
 
   requestResponse(extra?: Record<string, any>) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
@@ -177,6 +213,10 @@ export class GeminiWebSocket {
         }]
       }
     };
+
+    if (mimeType === "image/jpeg") {
+      this.lastImageBase64 = b64Data;
+    }
 
     try {
       this.ws.send(JSON.stringify(message));
@@ -278,14 +318,32 @@ export class GeminiWebSocket {
   }
 
   private async handleMessage(message: string) {
+    console.log("handle")
     try {
       const messageData = JSON.parse(message);
-      
+      console.log("message",messageData)
       if (messageData.setupComplete) {
         this.isSetupComplete = true;
         this.onSetupCompleteCallback?.();
         return;
       }
+
+          if (messageData.toolCall) {
+      const toolCall = messageData.toolCall;
+      toolCall.functionCalls?.forEach((fc: any) => {
+        if (fc.name === "sayHelloWorld") {
+          console.log("Hello world");  // <-- do your side effect
+          // Always respond to the tool call:
+          this.ws?.send(JSON.stringify({
+            toolResponse: {
+              toolUseId: toolCall.id,
+              response: { result: "ok" }
+            }
+          }));
+        }
+      });
+    }
+
 
       // Handle audio data
       if (messageData.serverContent?.modelTurn?.parts) {
@@ -309,8 +367,22 @@ export class GeminiWebSocket {
               wavData,
               "audio/wav"
             );
-            console.log("[Transcription]:", transcription);
 
+            console.log("Transcription", transcription);
+            console.log(typeof transcription);
+            
+            if(transcription.toLowerCase().includes("inspection completed")){
+              this.disconnect()
+              this.stopVideoRecordingAndRedirect()
+             
+            }
+            console.log("transcription",transcription,transcription.toLocaleLowerCase().includes("good image"));
+            if(transcription.toLocaleLowerCase().includes("good image")){
+
+
+              s3Upload(this.lastImageBase64,process.env.NEXT_PUBLIC_AWS_S3_BUCKET,`${this.VehicleId}/${this.imageLables[this.indexForLabel]}`)
+              this.indexForLabel++
+            }
             this.onTranscriptionCallback?.(transcription);
             this.accumulatedPcmData = []; // Clear accumulated data
           } catch (error) {

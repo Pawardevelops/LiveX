@@ -1,43 +1,28 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
-  Radio,
   Bike as BikeIcon,
   MapPin,
   Gauge,
   CalendarClock,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
   Camera,
   Video,
   FileText,
-  Download,
-  Eye,
-  Play,
-  Maximize2,
   X,
   Settings,
-  Activity,
-  Wrench,
-  Fuel,
-  Battery,
-  Thermometer,
 } from "lucide-react";
 import VehicleDetailsTabView from "./VehicleDetailsTabView";
+import { loadBikesFromStorage } from "./VehicleList";
 
 type Vehicle = {
   id: number;
   name: string;
-  details: string;
   year: number;
   color: string;
   regNo: string;
@@ -46,6 +31,7 @@ type Vehicle = {
   status: "Pending" | "In Progress" | "Completed";
   lastInspection?: string;
   thumb?: string;
+  details?: string;
 };
 
 const bikes: Vehicle[] = [
@@ -98,7 +84,10 @@ const statusStyles: Record<Vehicle["status"], string> = {
 
 export default function VehicleDetails({ bikeId }: { bikeId: string }) {
   const router = useRouter();
-  const bike = bikes.find((b) => b.id === parseInt(bikeId));
+  const params = useParams();
+  const vehicleId = params.id ? params.id : "";
+  const loadedBikes = loadBikesFromStorage();
+  const bike = loadedBikes.find((b) => b.id === parseInt(bikeId));
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
 
   if (!bike) {
@@ -174,9 +163,13 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
                 >
                   {bike.thumb ? (
                     <img
-                      src={bike.thumb}
+                      src={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${bike.id}/right_photo.png`}
                       alt={`${bike.name} photo`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.src =
+                          bike.thumb || "/default-image.png";
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -202,7 +195,6 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
                   <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
                     {bike.name}
                   </h1>
-                  <p className="text-gray-600">{bike.details}</p>
                 </div>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -262,7 +254,7 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
       {/* Tab Navigation */}
 
       {/* Tab Content */}
-      <VehicleDetailsTabView bike={bike} setSelectedMedia={setSelectedMedia} />
+      <VehicleDetailsTabView bike={bike} />
 
       {/* Media Modal */}
       <AnimatePresence>
