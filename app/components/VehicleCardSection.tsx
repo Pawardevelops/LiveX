@@ -26,7 +26,7 @@ type VehicleStatus = "Pending" | "In Progress" | "Completed";
 
 const VehicleCardSection = ({ filtered }: { filtered: any }) => {
   const router = useRouter();
-  const handleStartLive = () => router.push("/live");
+  const handleStartLive = (id:any) => router.push(`/live?vehicleId=${id}`);
   const handleBikeClick = (id: number) => {
     router.push(`/vehicles/${id}`);
   };
@@ -131,7 +131,7 @@ const VehicleCardSection = ({ filtered }: { filtered: any }) => {
                 className="h-7 text-xs mt-3 p-4 rounded-full border border-gray-200 hover:border-gray-300"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStartLive();
+                  handleStartLive(bike.id);
                 }}
               >
                 <Radio className="mr-2 h-4 w-4" />
