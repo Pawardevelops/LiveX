@@ -11,23 +11,29 @@ export class TranscriptionService {
   }
 
   async transcribeAudio(audioBase64: string, mimeType: string = "audio/wav"): Promise<string> {
-    try {
-      const result = await this.model.generateContent([
-        {
-          inlineData: {
-            mimeType: mimeType,
-            data: audioBase64
-          }
-        },
-        { text: "Please transcribe the spoken language in this audio accurately. Ignore any background noise or non-speech sounds." },
-      ]);
+  try {
+    const result = await this.model.generateContent([
+      {
+        inlineData: {
+          mimeType: mimeType,
+          data: audioBase64
+        }
+      },
+      { text: "Please transcribe the spoken language in this audio accurately. Ignore any background noise or non-speech sounds." },
+    ]);
 
-      const txt = result.response.text()
-      
-      return result.response.text();
-    } catch (error) {
-      console.error("Transcription error:", error);
-      throw error;
-    }
+    const txt = result.response.text();
+    const prev = localStorage.getItem("transcription") || "";
+
+    const updated = prev ? `${prev}\n${txt}` : txt;
+
+    localStorage.setItem("transcription", updated);
+
+    return txt;
+  } catch (error) {
+    console.error("Transcription error:", error);
+    throw error;
   }
+}
+
 } 

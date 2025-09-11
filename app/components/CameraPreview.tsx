@@ -9,6 +9,7 @@ import { GeminiWebSocket } from "../services/geminiWebSocket";
 import { Base64 } from "js-base64";
 import { s3UploadVideo } from "../utils/s3upload";
 import { buildStepInstruction } from "../prompts/inspector";
+import { DetailService } from "../services/summary";
 
 const INSTRUCTIONS = buildStepInstruction(null);
 
@@ -53,13 +54,11 @@ const AudioVisualizer = ({
     <div className="flex items-center justify-center gap-1 h-8 w-8">{bars}</div>
   );
 };
-
 export default function CameraPreview({
   onTranscription,
   onToggleChat,
 }: CameraPreviewProps) {
   const router = useRouter();
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -187,7 +186,7 @@ export default function CameraPreview({
         new URLSearchParams(window.location.search).get("vehicleId") || "",
         "walkaround"
       );
-
+      new DetailService().summary(new URLSearchParams(window.location.search).get("vehicleId") || "");
       window.location.assign("/vehicles?v=success");
     };
   };
@@ -196,7 +195,9 @@ export default function CameraPreview({
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current?.stop();
     }
-    window.location.assign("/vehicles")
+      new DetailService().summary(new URLSearchParams(window.location.search).get("vehicleId") || "");
+
+    window.location.assign("/vehicles?v=success");
   };
 
   const getMedia = async (mode: FacingMode) => {
@@ -357,7 +358,7 @@ export default function CameraPreview({
         setConnectionStatus("connected");
       },
       (isPlaying) => setIsModelSpeaking(isPlaying),
-      (level) => setOutputAudioLevel(level),
+      (level) => {},
       handleTranscription,
       { instructions: INSTRUCTIONS },
       [
