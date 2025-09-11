@@ -66,7 +66,8 @@ export const bikes: Vehicle[] = [
     location: "Pune Yard A",
     status: "Pending",
     lastInspection: "2025-08-30",
-    thumb: "/images/bikes/classic350.jpg",
+    thumb:
+      "https://ik.imagekit.io/drivex/ik_productlisting/MotorcyclePlaceholder.jpg?tr=f-avif",
   },
   {
     id: 2,
@@ -78,7 +79,8 @@ export const bikes: Vehicle[] = [
     location: "Delhi Lot 3",
     status: "In Progress",
     lastInspection: "2025-09-02",
-    thumb: "/images/bikes/ns200.jpg",
+    thumb:
+      "https://ik.imagekit.io/drivex/ik_productlisting/MotorcyclePlaceholder.jpg?tr=f-avif",
   },
   {
     id: 3,
@@ -90,7 +92,8 @@ export const bikes: Vehicle[] = [
     location: "Bengaluru Zone 1",
     status: "Completed",
     lastInspection: "2025-08-25",
-    thumb: "/images/bikes/apache160.jpg",
+    thumb:
+      "https://ik.imagekit.io/drivex/ik_productlisting/MotorcyclePlaceholder.jpg?tr=f-avif",
   },
 ];
 
