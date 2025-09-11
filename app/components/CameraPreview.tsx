@@ -7,89 +7,13 @@ import { Button } from "../../components/ui/button";
 import { Video, VideoOff, Zap, RefreshCcw, MessageSquareText, X } from "lucide-react";
 import { GeminiWebSocket } from '../services/geminiWebSocket';
 import { Base64 } from 'js-base64';
+import { s3UploadVideo } from '../utils/s3upload';
 
 import { buildStepInstruction, CheckpointTree } from "../prompts/inspector";
 
-// Example checkpoints (replace with your real data)
-// ----------------- YOUR (packed) CHECKPOINTS -----------------
-const CHECKPOINTS = {
-  front_tyre: {
-    question: "Show the front tyre tread and sidewall, close-up, then a wide shot.",
-    issues: [
-      "tyre is worn out (tread below wear markers)",
-      "uneven/feathered wear",
-      "sidewall cuts or bulges",
-      "embedded nails or objects",
-      "low pressure",
-      "no issues"
-    ],
-    fixes: [
-      "replace front tyre",
-      "balance and align front wheel",
-      "remove debris and patch/replace as needed",
-      "inflate to recommended PSI",
-      "check fork alignment if wear is uneven",
-      "no fixes required"
-    ]
-  },
-
-  back_tyre: {
-    question: "Show rear tyre tread/sidewall; rotate to check embedded objects.",
-    issues: [
-      "tyre worn flat in center",
-      "sidewall damage",
-      "puncture/embedded object",
-      "under-inflation",
-      "no issues"
-    ],
-    fixes: [
-      "replace tyre",
-      "patch/plug if applicable; otherwise replace",
-      "inflate to spec",
-      "check alignment and load settings",
-      "no fixes required"
-    ]
-  },
-
-  mirror: {
-    question: "Show all rear-view and side mirrors; move them to demonstrate adjustability and stability.",
-    issues: [
-      "cracked or broken mirror",
-      "mirror loose or not holding position",
-      "discolored or hazy glass",
-      "obstructed view",
-      "no issues"
-    ],
-    fixes: [
-      "replace mirror glass or assembly",
-      "tighten or replace mounting",
-      "clean or replace as needed",
-      "adjust or clear obstructions",
-      "no fixes required"
-    ]
-  },
-
-  odometer: {
-    question: "Show a close-up of the odometer with the key in ON position. Rotate the trip-meter if possible.",
-    issues: [
-      "display not working",
-      "incorrect reading (visual or known issue)",
-      "stuck digits/analog needle",
-      "fogged/damaged display",
-      "no issues"
-    ],
-    fixes: [
-      "check fuses/connections",
-      "repair or replace odometer assembly",
-      "replace glass or clean display",
-      "verify with service records",
-      "no fixes required"
-    ]
-  }
-};
 
 
-const INSTRUCTIONS = buildStepInstruction(CHECKPOINTS);
+const INSTRUCTIONS = buildStepInstruction(null);
 
 
 interface CameraPreviewProps {
@@ -101,6 +25,7 @@ type FacingMode = "user" | "environment";
 
 export default function CameraPreview({ onTranscription, onToggleChat }: CameraPreviewProps) {
   const router = useRouter();
+  const [count,setCount]= useState(0)
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -113,6 +38,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
   const geminiWsRef = useRef<GeminiWebSocket | null>(null);
   const videoCanvasRef = useRef<HTMLCanvasElement>(null);
   const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder|null>(null)
 
   const [isAudioSetup, setIsAudioSetup] = useState(false);
   const setupInProgressRef = useRef(false);
@@ -198,6 +124,42 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
     setStream(null);
   };
 
+
+  const startVideoRecording = (videoStream: MediaStream) => {
+    // 2. Create MediaRecorder
+    const recordedChunks: Blob[] = [];
+    mediaRecorderRef.current = new MediaRecorder(videoStream, {
+      mimeType: "video/webm; codecs=vp9", // fallback to "video/webm" if needed
+    });
+
+    // 3. Capture chunks as data becomes available
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    };
+
+    // 5. Start recording
+    mediaRecorderRef.current.start();
+
+    mediaRecorderRef.current.onstop = async () => {
+      const blob = new Blob(recordedChunks, { type: "video/webm" });
+
+
+      // Create a download link
+      const url = await s3UploadVideo(blob, process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "", (new URLSearchParams(window.location.search).get("vehicleId") || ""), "walkaround");
+
+      window.location.assign("/vehicles?v=success")
+    };
+
+  };
+
+  const stopVideoRecordingAndRedirect = () => {
+    if(mediaRecorderRef.current){
+       mediaRecorderRef.current?.stop();
+    }
+  }
+
   const getMedia = async (mode: FacingMode) => {
     const videoStream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -207,6 +169,8 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
       },
       audio: false,
     });
+
+    startVideoRecording(videoStream)
 
     const audioStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -308,6 +272,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
     router.back();
   };
 
+
   const handleTranscription = useCallback((text: string) => {
     const normalise = (s: string) => s.toLowerCase();
     const t = normalise(text);
@@ -339,7 +304,10 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
       (isPlaying) => setIsModelSpeaking(isPlaying),
       (level) => setOutputAudioLevel(level),
       handleTranscription,
-      { instructions: INSTRUCTIONS }                 // <-- NEW
+      { instructions: INSTRUCTIONS },
+      ["front_tyer","front_tyre_gauge","right_photo","back_photo","back_tyre_gauge","left_photo","odometer_value"],
+      (new URLSearchParams(window.location.search).get("vehicleId") || ""),
+      stopVideoRecordingAndRedirect
     );
     geminiWsRef.current = ws;
     ws.connect();
@@ -373,6 +341,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
       ctx.drawImage(videoRef.current, 0, 0, w, h);
       const imageData = canvas.toDataURL('image/jpeg', 0.8);
       const b64Data = imageData.split(',')[1];
+
       geminiWsRef.current.sendMediaChunk(b64Data, "image/jpeg");
     };
 
@@ -384,6 +353,8 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
       }
     };
   }, [isStreaming, isWebSocketReady]);
+
+
 
   // Audio processing (worklet) setup
   useEffect(() => {
