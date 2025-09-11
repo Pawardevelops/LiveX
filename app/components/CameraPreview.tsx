@@ -1,27 +1,28 @@
 // app/components/CameraPreview.tsx
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
-import { Video, VideoOff, Zap, RefreshCcw, MessageSquareText, X } from "lucide-react";
-import { GeminiWebSocket } from '../services/geminiWebSocket';
-import { Base64 } from 'js-base64';
-
-import { buildStepInstruction, CheckpointTree } from "../prompts/inspector";
+import { Zap, RefreshCcw, X } from "lucide-react";
+import { GeminiWebSocket } from "../services/geminiWebSocket";
+import { Base64 } from "js-base64";
+import { buildStepInstruction } from "../prompts/inspector";
+import { SparklesCore } from "@/components/ui/sparkles";
 
 // Example checkpoints (replace with your real data)
 // ----------------- YOUR (packed) CHECKPOINTS -----------------
 const CHECKPOINTS = {
   front_tyre: {
-    question: "Show the front tyre tread and sidewall, close-up, then a wide shot.",
+    question:
+      "Show the front tyre tread and sidewall, close-up, then a wide shot.",
     issues: [
       "tyre is worn out (tread below wear markers)",
       "uneven/feathered wear",
       "sidewall cuts or bulges",
       "embedded nails or objects",
       "low pressure",
-      "no issues"
+      "no issues",
     ],
     fixes: [
       "replace front tyre",
@@ -29,68 +30,69 @@ const CHECKPOINTS = {
       "remove debris and patch/replace as needed",
       "inflate to recommended PSI",
       "check fork alignment if wear is uneven",
-      "no fixes required"
-    ]
+      "no fixes required",
+    ],
   },
 
   back_tyre: {
-    question: "Show rear tyre tread/sidewall; rotate to check embedded objects.",
+    question:
+      "Show rear tyre tread/sidewall; rotate to check embedded objects.",
     issues: [
       "tyre worn flat in center",
       "sidewall damage",
       "puncture/embedded object",
       "under-inflation",
-      "no issues"
+      "no issues",
     ],
     fixes: [
       "replace tyre",
       "patch/plug if applicable; otherwise replace",
       "inflate to spec",
       "check alignment and load settings",
-      "no fixes required"
-    ]
+      "no fixes required",
+    ],
   },
 
   mirror: {
-    question: "Show all rear-view and side mirrors; move them to demonstrate adjustability and stability.",
+    question:
+      "Show all rear-view and side mirrors; move them to demonstrate adjustability and stability.",
     issues: [
       "cracked or broken mirror",
       "mirror loose or not holding position",
       "discolored or hazy glass",
       "obstructed view",
-      "no issues"
+      "no issues",
     ],
     fixes: [
       "replace mirror glass or assembly",
       "tighten or replace mounting",
       "clean or replace as needed",
       "adjust or clear obstructions",
-      "no fixes required"
-    ]
+      "no fixes required",
+    ],
   },
 
   odometer: {
-    question: "Show a close-up of the odometer with the key in ON position. Rotate the trip-meter if possible.",
+    question:
+      "Show a close-up of the odometer with the key in ON position. Rotate the trip-meter if possible.",
     issues: [
       "display not working",
       "incorrect reading (visual or known issue)",
       "stuck digits/analog needle",
       "fogged/damaged display",
-      "no issues"
+      "no issues",
     ],
     fixes: [
       "check fuses/connections",
       "repair or replace odometer assembly",
       "replace glass or clean display",
       "verify with service records",
-      "no fixes required"
-    ]
-  }
+      "no fixes required",
+    ],
+  },
 };
 
-
 const INSTRUCTIONS = buildStepInstruction(CHECKPOINTS);
-
 
 interface CameraPreviewProps {
   onTranscription: (text: string) => void;
@@ -99,14 +101,52 @@ interface CameraPreviewProps {
 
 type FacingMode = "user" | "environment";
 
-export default function CameraPreview({ onTranscription, onToggleChat }: CameraPreviewProps) {
+// Audio visualization component
+const AudioVisualizer = ({
+  audioLevel,
+  isActive,
+}: {
+  audioLevel: number;
+  isActive: boolean;
+}) => {
+  const bars = Array.from({ length: 4 }, (_, i) => {
+    const delay = i * 0.1;
+    const height = isActive
+      ? Math.max(20, audioLevel * 0.8 + Math.random() * 20)
+      : 20;
+
+    return (
+      <div
+        key={i}
+        className={`bg-white rounded-full transition-all duration-200 ${
+          isActive ? "animate-pulse" : ""
+        }`}
+        style={{
+          width: "3px",
+          height: `${height}%`,
+          animationDelay: `${delay}s`,
+          opacity: isActive ? 0.8 + (audioLevel / 100) * 0.2 : 0.4,
+        }}
+      />
+    );
+  });
+
+  return (
+    <div className="flex items-center justify-center gap-1 h-8 w-8">{bars}</div>
+  );
+};
+
+export default function CameraPreview({
+  onTranscription,
+  onToggleChat,
+}: CameraPreviewProps) {
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [audioLevel, setAudioLevel] = useState(0);          // 0..100 input level
+  const [audioLevel, setAudioLevel] = useState(0); // 0..100 input level
   const [outputAudioLevel, setOutputAudioLevel] = useState(0); // 0..100 TTS level
   const [isModelSpeaking, setIsModelSpeaking] = useState(false);
 
@@ -118,12 +158,14 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
   const setupInProgressRef = useRef(false);
   const [isWebSocketReady, setIsWebSocketReady] = useState(false);
   const imageIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<
+    "disconnected" | "connecting" | "connected"
+  >("disconnected");
 
   // Facing + torch state
   const [facing, setFacing] = useState<FacingMode>("environment");
   const [flashOn, setFlashOn] = useState(false);
-  const [slowMode, setSlowMode] = useState(true);      // NEW: start slower
+  const [slowMode, setSlowMode] = useState(true); // NEW: start slower
   const [autoAdvance, setAutoAdvance] = useState(false); // default off
 
   // Call this when user taps Next:
@@ -146,7 +188,9 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
 
   // Inform model about slow mode anytime it toggles:
   useEffect(() => {
-    geminiWsRef.current?.sendClientEvent("pace", { mode: slowMode ? "slow" : "normal" });
+    geminiWsRef.current?.sendClientEvent("pace", {
+      mode: slowMode ? "slow" : "normal",
+    });
   }, [slowMode]);
 
   // --- Smooth audio level for pulse UI (0..1) ---
@@ -155,7 +199,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
     let raf: number;
     const tick = () => {
       const raw = (isModelSpeaking ? outputAudioLevel : audioLevel) / 100; // 0..1
-      setSmoothLevel(prev => prev + (raw - prev) * 0.15); // eased
+      setSmoothLevel((prev) => prev + (raw - prev) * 0.15); // eased
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -190,7 +234,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
   // --- Media control helpers ---
   const stopMediaTracksOnly = () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -225,7 +269,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
 
     if (videoRef.current) {
       videoRef.current.srcObject = combined;
-      videoRef.current.muted = true;      // avoid acoustic echo
+      videoRef.current.muted = true; // avoid acoustic echo
       (videoRef.current as any).playsInline = true;
     }
 
@@ -236,11 +280,14 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
   const startMedia = async (mode: FacingMode) => {
     try {
       // Create/resume AudioContext on user gesture (iOS)
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        const Ctx = (window.AudioContext || (window as any).webkitAudioContext);
+      if (
+        !audioContextRef.current ||
+        audioContextRef.current.state === "closed"
+      ) {
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
         audioContextRef.current = new Ctx({ sampleRate: 16000 });
       }
-      if (audioContextRef.current.state === 'suspended') {
+      if (audioContextRef.current.state === "suspended") {
         await audioContextRef.current.resume();
       }
 
@@ -249,7 +296,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
       setFlashOn(false); // reset torch state on fresh start
       return media;
     } catch (err) {
-      console.error('Error accessing media devices:', err);
+      console.error("Error accessing media devices:", err);
       cleanupAudio();
       return null;
     }
@@ -280,16 +327,19 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
     const videoTrack = stream.getVideoTracks()[0];
     if (!videoTrack) return;
 
-    const caps: any = (videoTrack.getCapabilities && videoTrack.getCapabilities()) || {};
+    const caps: any =
+      (videoTrack.getCapabilities && videoTrack.getCapabilities()) || {};
     if (!("torch" in caps)) {
-      setFlashOn(v => !v);
+      setFlashOn((v) => !v);
       alert("Torch/flash is not supported on this device or browser.");
       return;
     }
 
     try {
-      await videoTrack.applyConstraints({ advanced: [{ torch: !flashOn }] as any });
-      setFlashOn(v => !v);
+      await videoTrack.applyConstraints({
+        advanced: [{ torch: !flashOn }] as any,
+      });
+      setFlashOn((v) => !v);
     } catch (e) {
       console.error("Failed to toggle torch:", e);
       alert("Failed to toggle flash. Your device may not allow it.");
@@ -308,38 +358,49 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
     router.back();
   };
 
-  const handleTranscription = useCallback((text: string) => {
-    const normalise = (s: string) => s.toLowerCase();
-    const t = normalise(text);
-    // tyer/tyre/tire variants
-    if (/(front).*(tyre|tire|tyer)/.test(t)) {
-      geminiWsRef.current?.sendClientEvent("user_asserts_view", { section: "front", item: "tyre" });
-    }
-    if (/(rear|back).*(tyre|tire|tyer)/.test(t)) {
-      geminiWsRef.current?.sendClientEvent("user_asserts_view", { section: "back", item: "tyre" });
-    }
-    // then keep your existing message handling
-    onTranscription(text);
-  }, [onTranscription]);
+  const handleTranscription = useCallback(
+    (text: string) => {
+      const normalise = (s: string) => s.toLowerCase();
+      const t = normalise(text);
+      // tyer/tyre/tire variants
+      if (/(front).*(tyre|tire|tyer)/.test(t)) {
+        geminiWsRef.current?.sendClientEvent("user_asserts_view", {
+          section: "front",
+          item: "tyre",
+        });
+      }
+      if (/(rear|back).*(tyre|tire|tyer)/.test(t)) {
+        geminiWsRef.current?.sendClientEvent("user_asserts_view", {
+          section: "back",
+          item: "tyre",
+        });
+      }
+      // then keep your existing message handling
+      onTranscription(text);
+    },
+    [onTranscription]
+  );
 
   // Initialize WebSocket connection
   useEffect(() => {
     if (!isStreaming) {
-      setConnectionStatus('disconnected');
+      setConnectionStatus("disconnected");
       return;
     }
 
-    setConnectionStatus('connecting');
+    setConnectionStatus("connecting");
     const ws = new GeminiWebSocket(
-      (text) => { /* optional streaming text */ },
+      (text) => {
+        /* optional streaming text */
+      },
       () => {
         setIsWebSocketReady(true);
-        setConnectionStatus('connected');
+        setConnectionStatus("connected");
       },
       (isPlaying) => setIsModelSpeaking(isPlaying),
       (level) => setOutputAudioLevel(level),
       handleTranscription,
-      { instructions: INSTRUCTIONS }                 // <-- NEW
+      { instructions: INSTRUCTIONS } // <-- NEW
     );
     geminiWsRef.current = ws;
     ws.connect();
@@ -351,7 +412,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
       }
       cleanupWebSocket();
       setIsWebSocketReady(false);
-      setConnectionStatus('disconnected');
+      setConnectionStatus("disconnected");
     };
   }, [isStreaming, onTranscription, cleanupWebSocket]);
 
@@ -360,9 +421,10 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
     if (!isStreaming || !isWebSocketReady) return;
 
     const captureAndSendImage = () => {
-      if (!videoRef.current || !videoCanvasRef.current || !geminiWsRef.current) return;
+      if (!videoRef.current || !videoCanvasRef.current || !geminiWsRef.current)
+        return;
       const canvas = videoCanvasRef.current;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       const w = videoRef.current.videoWidth || 640;
@@ -371,8 +433,8 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
       canvas.height = h;
 
       ctx.drawImage(videoRef.current, 0, 0, w, h);
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      const b64Data = imageData.split(',')[1];
+      const imageData = canvas.toDataURL("image/jpeg", 0.8);
+      const b64Data = imageData.split(",")[1];
       geminiWsRef.current.sendMediaChunk(b64Data, "image/jpeg");
     };
 
@@ -388,7 +450,8 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
   // Audio processing (worklet) setup
   useEffect(() => {
     if (!isStreaming || !stream || !isWebSocketReady) return;
-    if (!audioContextRef.current || isAudioSetup || setupInProgressRef.current) return;
+    if (!audioContextRef.current || isAudioSetup || setupInProgressRef.current)
+      return;
 
     let isActive = true;
     setupInProgressRef.current = true;
@@ -396,19 +459,19 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
     const setupAudioProcessing = async () => {
       try {
         const ctx = audioContextRef.current!;
-        if (ctx.state === 'suspended') await ctx.resume();
+        if (ctx.state === "suspended") await ctx.resume();
 
         // Ensure this file exists in /public/worklets/audio-processor.js
-        await ctx.audioWorklet.addModule('/worklets/audio-processor.js');
+        await ctx.audioWorklet.addModule("/worklets/audio-processor.js");
         if (!isActive) return;
 
-        const node = new AudioWorkletNode(ctx, 'audio-processor', {
+        const node = new AudioWorkletNode(ctx, "audio-processor", {
           numberOfInputs: 1,
           numberOfOutputs: 1,
           processorOptions: { sampleRate: 16000, bufferSize: 4096 },
           channelCount: 1,
-          channelCountMode: 'explicit',
-          channelInterpretation: 'speakers',
+          channelCountMode: "explicit",
+          channelInterpretation: "speakers",
         });
         audioWorkletNodeRef.current = node;
 
@@ -416,7 +479,7 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
         node.port.onmessage = (event) => {
           if (!isActive || isModelSpeaking) return;
           const { pcmData, level } = event.data;
-          if (typeof level === 'number') setAudioLevel(level); // 0..100
+          if (typeof level === "number") setAudioLevel(level); // 0..100
           if (pcmData) {
             const pcmArray = new Uint8Array(pcmData);
             const b64Data = Base64.fromUint8Array(pcmArray);
@@ -457,185 +520,164 @@ export default function CameraPreview({ onTranscription, onToggleChat }: CameraP
 
   // ---------- UI ----------
   return (
-    <div className="relative h-full w-full">
-      {/* Close (X) button */}
-      <div className="absolute top-3 left-3 z-20">
-        <Button
-          size="icon"
-          variant="secondary"
-          onClick={handleClose}
-          className="rounded-full bg-white/80 hover:bg-white shadow-sm"
-          title="Close"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5 text-gray-800" />
-        </Button>
-      </div>
-
-      {/* Video container (full camera screen) */}
-      <div className="relative h-full">
+    <div className="relative h-screen w-full bg-black overflow-hidden">
+      {/* Main video container */}
+      <div className="relative h-full w-full">
         <video
           ref={videoRef}
           autoPlay
           playsInline
-          className="w-full aspect-video bg-black  overflow-hidden object-cover h-full"
+          className="w-full h-full object-cover"
         />
 
+        {/* Top header with Live indicator and close button */}
+        <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/50 to-transparent pt-2">
+          <div className="flex items-center justify-between px-4 py-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleClose}
+              className="rounded-full text-white hover:bg-white/20"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-white font-medium">Live</span>
+            </div>
+
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full text-white hover:bg-white/20"
+            ></Button>
+          </div>
+        </div>
+
         {/* Connection Status Overlay */}
-        {isStreaming && connectionStatus !== 'connected' && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl backdrop-blur-sm">
-            <div className="text-center space-y-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto" />
-              <p className="text-white font-medium">
-                {connectionStatus === 'connecting' ? 'Connecting to Gemini...' : 'Disconnected'}
-              </p>
-              <p className="text-white/70 text-sm">
-                Please wait while we establish a secure connection
-              </p>
+        {isStreaming && connectionStatus !== "connected" && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-40">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto" />
+              <div className="space-y-2">
+                <p className="text-white text-lg font-medium">
+                  {connectionStatus === "connecting"
+                    ? "Connecting..."
+                    : "Disconnected"}
+                </p>
+                <p className="text-white/70 text-sm">
+                  Setting up your inspection session
+                </p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Top-right overlay controls: flip, flash, text */}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={flipCamera}
-            className="rounded-full bg-white/80 hover:bg-white shadow-sm"
-            title="Flip camera"
-          >
-            <RefreshCcw className="h-5 w-5 text-gray-800" />
-          </Button>
+        {/* Bottom control bar */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent">
+          <div>
+            {/* Main control row */}
+            <div className="flex flex-col items-center justify-between mb-4">
+              <div className="flex items-center space-x-4 gap-10">
+                {/* Left controls */}
+                <div className="flex items-center space-x-4">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    onClick={flipCamera}
+                    className="rounded-full w-12 h-12 bg-white/20 hover:bg-white/30 border-0 text-white"
+                  >
+                    <RefreshCcw className="h-5 w-5" />
+                  </Button>
+                </div>
 
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={toggleFlash}
-            className={`rounded-full shadow-sm ${flashOn ? 'bg-yellow-400 hover:bg-yellow-500' : 'bg-white/80 hover:bg-white'}`}
-            title="Toggle flash"
-          >
-            <Zap className={`h-5 w-5 ${flashOn ? 'text-black' : 'text-gray-800'}`} />
-          </Button>
+                {/* Center - Main record button with audio visualization */}
+                <div className="relative">
+                  {/* Animated rings when recording */}
+                  {!isStreaming && (
+                    <>
+                      <div
+                        className="absolute inset-0 rounded-full bg-white/10 animate-ping"
+                        style={{ animationDuration: "2s" }}
+                      />
+                      <div
+                        className="absolute inset-0 rounded-full bg-white/5 animate-pulse"
+                        style={{ animationDuration: "1.5s" }}
+                      />
+                    </>
+                  )}
 
-          {onToggleChat && (
-            <Button
-              size="icon"
-              variant="secondary"
-              onClick={onToggleChat}
-              className="rounded-full bg-white/80 hover:bg-white shadow-sm"
-              title="Show text chat"
-            >
-              <MessageSquareText className="h-5 w-5 text-gray-800" />
-            </Button>
-          )}
+                  <Button
+                    onClick={toggleCamera}
+                    size="icon"
+                    className={`relative z-10 rounded-full w-20 h-20 border-4 transition-all duration-300 ${
+                      isStreaming
+                        ? "bg-red-500 hover:bg-red-600 border-white"
+                        : "bg-white hover:bg-gray-100 border-gray-300"
+                    }`}
+                  >
+                    {isStreaming ? (
+                      <div className="w-6 h-6 bg-white rounded-sm" />
+                    ) : (
+                      <div className="w-8 h-8 bg-red-500 rounded-full" />
+                    )}
+                  </Button>
+
+                  {/* Audio visualizer overlay */}
+                  {isStreaming && (audioLevel > 0 || isModelSpeaking) && (
+                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+                      <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-2 flex items-center space-x-1">
+                        <AudioVisualizer
+                          audioLevel={
+                            isModelSpeaking ? outputAudioLevel : audioLevel
+                          }
+                          isActive={isModelSpeaking || audioLevel > 10}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right controls */}
+                <div className="flex items-center space-x-4">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    onClick={toggleFlash}
+                    className={`rounded-full w-12 h-12 border-0 text-white ${
+                      flashOn
+                        ? "bg-yellow-500 hover:bg-yellow-600"
+                        : "bg-white/20 hover:bg-white/30"
+                    }`}
+                  >
+                    <Zap className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="w-[40rem] h-20 relative">
+                {/* Gradients */}
+                <div className="absolute inset-x-20 top-0 bg-gradient-to-r from-transparent via-indigo-500 to-transparent h-[2px] w-3/4 blur-sm" />
+                <div className="absolute inset-x-20 top-0 bg-gradient-to-r from-transparent via-indigo-500 to-transparent h-px w-3/4" />
+                <div className="absolute inset-x-60 top-0 bg-gradient-to-r from-transparent via-sky-500 to-transparent h-[5px] w-1/4 blur-sm" />
+                <div className="absolute inset-x-60 top-0 bg-gradient-to-r from-transparent via-sky-500 to-transparent h-px w-1/4" />
+
+                {/* Core component */}
+                <SparklesCore
+                  background="transparent"
+                  minSize={0.4}
+                  maxSize={1}
+                  particleDensity={1200}
+                  className="w-full h-full"
+                  particleColor="#FFFFFF"
+                />
+
+                {/* Radial Gradient to prevent sharp edges */}
+                <div className="absolute inset-0 w-full h-full  [mask-image:radial-gradient(350px_200px_at_top,transparent_20%,white)]"></div>
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* Center toggle button with PULSE overlay (floats above video) */}
-        {/* Bottom control dock (pulse + actions) */}
-<div className="absolute inset-x-0 bottom-4 px-4 z-20">
-  <div className="mx-auto w-full max-w-2xl rounded-full bg-black/35 border border-white/10 shadow-xl backdrop-blur-md">
-    <div className="flex items-center justify-between px-3 py-2">
-      
-      {/* Left: Repeat / Skip */}
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleRepeat}
-          className="h-10 rounded-full bg-white/85 hover:bg-white text-gray-900"
-          title="Repeat the last instruction"
-        >
-          <span className="hidden xs:inline">Repeat</span>
-          <span className="xs:hidden">↻</span>
-        </Button>
-
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleSkip}
-          className="h-10 rounded-full bg-white/85 hover:bg-white text-gray-900"
-          title="Skip this checkpoint"
-        >
-          <span className="hidden xs:inline">Skip</span>
-          <span className="xs:hidden">⤼</span>
-        </Button>
-      </div>
-
-      {/* Center: Start/Stop with pulse */}
-      <div className="relative w-20 h-20 flex items-center justify-center">
-        {isStreaming && (
-          <>
-            <div
-              className="pointer-events-none absolute inset-0 rounded-full bg-blue-500/25 blur-md transition-transform duration-150"
-              style={{ transform: `scale(${1 + smoothLevel * 0.9})` }}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 m-2 rounded-full bg-blue-500/35 blur-md transition-transform duration-150"
-              style={{ transform: `scale(${1 + smoothLevel * 0.6})` }}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 m-4 rounded-full bg-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.60)] transition-transform duration-150"
-              style={{ transform: `scale(${1 + smoothLevel * 0.3})` }}
-            />
-          </>
-        )}
-
-        <Button
-          onClick={toggleCamera}
-          size="icon"
-          className={`relative z-10 rounded-full w-16 h-16 backdrop-blur-sm transition-colors
-            ${isStreaming
-              ? 'bg-red-500/90 hover:bg-red-500 text-white'
-              : 'bg-emerald-500/90 hover:bg-emerald-500 text-white'
-            }`}
-          title={isStreaming ? "Stop" : "Start"}
-          aria-label={isStreaming ? "Stop camera" : "Start camera"}
-        >
-          {isStreaming ? <VideoOff className="h-7 w-7" /> : <Video className="h-7 w-7" />}
-        </Button>
-      </div>
-
-      {/* Right: Slow toggle / Next */}
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => setSlowMode(v => !v)}
-          aria-pressed={slowMode}
-          className={`h-10 rounded-full text-gray-900 ${
-            slowMode
-              ? 'bg-amber-300 hover:bg-amber-400'
-              : 'bg-white/85 hover:bg-white'
-          }`}
-          title="Toggle slow, step-by-step coaching"
-        >
-          <span
-            className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${
-              slowMode ? 'bg-emerald-700' : 'bg-gray-400'
-            }`}
-          />
-          <span className="hidden xs:inline">Slow</span>
-          <span className="xs:hidden">S</span>
-        </Button>
-
-        <Button
-          size="sm"
-          onClick={handleNext}
-          className="h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-5"
-          title="Proceed to next checkpoint"
-        >
-          <span className="hidden xs:inline">Next</span>
-          <span className="xs:hidden">→</span>
-        </Button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-
-
       </div>
 
       <canvas ref={videoCanvasRef} className="hidden" />
