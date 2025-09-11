@@ -475,32 +475,27 @@ export default function VehicleList() {
                   </div>
                 </div>
 
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      handleCreateVehicle({ isStartInspection: false })
-                    }
-                    className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
-                  >
-                    Create Lead
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      handleCreateVehicle({ isStartInspection: true })
-                    }
-                    className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
-                  >
-                    Start Inspection
-                  </Button>
+                <DialogFooter className="p-2 flex-col md:flex-row gap-4 items-center justify-center">
+                  <div className="flex gap-4 items-center justify-center">
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        handleCreateVehicle({ isStartInspection: false })
+                      }
+                      className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
+                    >
+                      Create Lead
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        handleCreateVehicle({ isStartInspection: true })
+                      }
+                      className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
+                    >
+                      Start Inspection
+                    </Button>
+                  </div>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
