@@ -101,13 +101,13 @@ export const GET = async (req: NextRequest) => {
   ];
 
   const labels = [
-    s3BaseUrl + "front_tyre",
-    s3BaseUrl + "front_tyre_gauge",
-    s3BaseUrl + "right_photo",
-    s3BaseUrl + "back_photo",
-    s3BaseUrl + "back_tyre_gauge",
-    s3BaseUrl + "left_photo",
-    s3BaseUrl + "odometer_value",
+    "front_tyre",
+    "front_tyre_gauge",
+    "right_photo",
+    "back_photo",
+    "back_tyre_gauge",
+    "left_photo",
+    "odometer_value",
   ];
   const partsWithLabel = [];
   try {

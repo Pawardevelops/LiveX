@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
-import { mockIssues, mockMedia } from "./data";
+import { mockMedia } from "./data";
+import AnnotatedImageViewer from "./AnnotatedImageViewer";
 
 // Types for JSON data structure
 interface VehicleData {
@@ -284,29 +285,18 @@ const MediaPreviewModal = ({
   );
 };
 
-const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
+const VehicleDetailsTabView = ({
+  bike,
+  vehicleSummary,
+}: {
+  bike: any;
+  vehicleSummary: any;
+}) => {
   const [activeTab, setActiveTab] = useState("details");
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [previewMedia, setPreviewMedia] = useState<any>(null);
-
-  const severityColors = {
-    High: "text-red-600 bg-red-50",
-    Medium: "text-orange-600 bg-orange-50",
-    Low: "text-green-600 bg-green-50",
-  };
-
-  const statusColors = {
-    Open: "text-red-600 bg-red-50",
-    "In Progress": "text-blue-600 bg-blue-50",
-    Resolved: "text-green-600 bg-green-50",
-  };
 
   const params = useParams();
   const vehicleId = params.id ? params.id : "";
-
-  const handleMediaClick = (item: MediaItem) => {
-    setPreviewMedia(item);
-  };
 
   const newData = localStorage.getItem(`T_${vehicleId}`);
   const jsonData = newData ? JSON.parse(newData) : null;
@@ -317,11 +307,20 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
   // Use JSON data for vehicle information
   const vehicleRecommendations =
     finalData.condition.vehicleCondition.recommendation || [];
-  const vehicleSummary = finalData.details.inspection.summary || "";
+  const vehicleSummaryData = finalData.details.inspection.summary || "";
   const vehicleIssues = finalData.condition.vehicleCondition || {};
   const vehicleDetails = finalData.details.vehicle || {};
   const vehicleInspectionStatus = finalData.details.inspection.status || "";
 
+  const vehicleImageType = [
+    { type: "front_tyre", name: "Front Tyre" },
+    { type: "front_tyre_gauge", name: "Front Tyre Gauge" },
+    { type: "right_photo", name: "Right" },
+    { type: "back_photo", name: "Back" },
+    { type: "back_tyre_gauge", name: "Back Tyre Gauge" },
+    { type: "left_photo", name: "Left" },
+    { type: "odometer_value", name: "Odometer" },
+  ];
   return (
     <>
       <motion.div
@@ -535,6 +534,33 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
                       </div>
                     </motion.div>
                   </div>
+
+                  <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg shadow-sm mt-10">
+                    {vehicleSummary?.defects?.length > 0 ? (
+                      vehicleSummary.defects.map((d: any, index: any) => (
+                        <div key={index} className=" bg-white">
+                          <h3 className="text-lg font-semibold mb-2">
+                            Defect Identified in{" "}
+                            {vehicleImageType.find(
+                              (item) => item.type === d.Type
+                            )?.name ?? ""}
+                          </h3>
+                          <p className="text-gray-700 mb-4">
+                            {d?.description || "No description available."}
+                          </p>
+
+                          <span className="w-[300px] md:w-full">
+                            <AnnotatedImageViewer
+                              imageUrl={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/${d.Type}.png`}
+                              analysisData={{ defects: [d] }}
+                            />
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No defects found.</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -654,7 +680,7 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
             >
               <div className="space-y-6">
                 {/* Overall Score */}
-                {vehicleSummary !== "" ? (
+                {vehicleSummaryData !== "" ? (
                   <Card className="border-white/60 bg-white/85 backdrop-blur">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -664,7 +690,7 @@ const VehicleDetailsTabView = ({ bike }: { bike: any }) => {
                     </CardHeader>
                     <CardContent>
                       <div>
-                        <p>{vehicleSummary}</p>
+                        <p>{vehicleSummaryData}</p>
                       </div>
                     </CardContent>
                   </Card>

@@ -92,14 +92,12 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
   const [vehicleSummary, setVehicleSummary] = useState();
 
-  console.log(vehicleSummary, "check now ");
-
   useEffect(() => {
     // Define an async function inside the effect
     const fetchData = async () => {
       try {
         // 1. Fetch the data and await the response
-        const response = await fetch("/api/upload/?vehicleId=1");
+        const response = await fetch(`/api/upload/?vehicleId=${vehicleId}`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -217,16 +215,6 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
                       <BikeIcon className="h-16 w-16" />
                     </div>
                   )}
-                  <div className="absolute top-4 right-4">
-                    <Badge
-                      variant="outline"
-                      className={`border ${
-                        statusStyles[bike.status]
-                      } backdrop-blur`}
-                    >
-                      {bike.status}
-                    </Badge>
-                  </div>
                 </motion.div>
               </div>
 
@@ -295,35 +283,7 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
       {/* Tab Navigation */}
 
       {/* Tab Content */}
-      <VehicleDetailsTabView bike={bike} />
-
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg shadow-sm mt-10">
-        {vehicleSummary?.defects?.length > 0 ? (
-          vehicleSummary.defects.map((d: any, index: any) => (
-            <div key={index} className=" bg-white">
-              <h3 className="text-lg font-semibold mb-2">
-                Defect Identified in{" "}
-                {d.Type.replace(/_/g, " ").replace(
-                  /^(\w)/,
-                  ({ char }: { char: string }) => char
-                )}
-              </h3>
-              <p className="text-gray-700 mb-4">
-                {d?.description || "No description available."}
-              </p>
-
-              <span className="w-[300px] md:w-full">
-                <AnnotatedImageViewer
-                  imageUrl={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/1/${d.Type}.png`}
-                  analysisData={{ defects: [d] }}
-                />
-              </span>
-            </div>
-          ))
-        ) : (
-          <p className="text-gray-500">No defects found.</p>
-        )}
-      </div>
+      <VehicleDetailsTabView bike={bike} vehicleSummary={vehicleSummary} />
 
       {/* Media Modal */}
       <AnimatePresence>
