@@ -298,13 +298,28 @@ const VehicleDetailsTabView = ({
   const params = useParams();
   const vehicleId = params.id ? params.id : "";
 
-  const newData = localStorage.getItem(`T_${vehicleId}`);
-  const jsonData = newData ? JSON.parse(newData) : null;
+  const [vehicleDetail, setVehicleDetail] = useState<any>(null);
 
-  const data = jsonData ? Object.values(jsonData[0]) : [defaultJsonData];
-  const finalData: any = data[0] ?? defaultJsonData;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`/api/ocr/?vehicleId=${vehicleId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const cleanedString = data.analysis.replace(/```json\n|\n```/g, "");
+        const parsedAnalysis = JSON.parse(cleanedString);
+        setVehicleDetail(parsedAnalysis);
+      } catch (e) {
+        console.error("Error parsing JSON:", e);
+      }
+    };
+    fetchData();
+  }, []);
 
-  // Use JSON data for vehicle information
+  const finalData: any = vehicleDetail ?? defaultJsonData;
+
   const vehicleRecommendations =
     finalData.condition.vehicleCondition.recommendation || [];
   const vehicleSummaryData = finalData.details.inspection.summary || "";

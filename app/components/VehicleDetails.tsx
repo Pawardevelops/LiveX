@@ -163,14 +163,6 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
         animate={{ opacity: 1, y: 0 }}
         className="mx-auto max-w-6xl mb-6 flex items-center justify-between"
       >
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="flex items-center gap-2 hover:bg-white/50"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
         <div className="text-right">
           <div className="text-xs text-gray-600">Vehicle Inspection</div>
           <div className="text-2xl font-extrabold tracking-tight">
