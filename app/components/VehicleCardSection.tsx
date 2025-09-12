@@ -66,14 +66,6 @@ const VehicleCardSection = ({ filtered }: { filtered: any }) => {
                 <CardTitle className="text-lg font-semibold leading-tight group-hover:text-blue-600 transition-colors">
                   {bike.name}
                 </CardTitle>
-                <Badge
-                  variant="outline"
-                  className={`border ${
-                    statusStyles[bike.status as VehicleStatus]
-                  }`}
-                >
-                  {bike.status}
-                </Badge>
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {bike.year} • {bike.color} • {bike.regNo}

@@ -12,7 +12,7 @@ import {
 export const stats = [
   {
     icon: Users,
-    label: "Active Inspectors",
+    label: "Completed Inspections",
     value: "12",
     trend: "+2 this week",
     color: "text-blue-600",
@@ -27,8 +27,8 @@ export const stats = [
   {
     icon: Clock,
     label: "Avg. Time",
-    value: "2.5h",
-    trend: "-0.3h improvement",
+    value: "2 Min",
+    trend: "20 Sec improvement",
     color: "text-purple-600",
   },
   {
@@ -131,7 +131,6 @@ export const mockMedia = (vehicleId: any) => [
   // FRONT
   {
     id: 1,
-
     type: "front_tyre",
     title: "Front Tyre",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/front_tyre.png`,
@@ -154,24 +153,16 @@ export const mockMedia = (vehicleId: any) => [
     duration: "5:20",
     timestamp: "2025-09-10T12:00:00",
   },
-  {
-    id: 4,
-    type: "right_photo",
-    title: "Right Photo",
-    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/right_photo.png`,
-    duration: "5:20",
-    timestamp: "2025-09-10T12:00:00",
-  },
   // BACK
   {
-    id: 5,
+    id: 4,
     type: "back_photo",
     title: "Back Photo",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/back_photo.png`,
     timestamp: "2025-09-10T10:30:00",
   },
   {
-    id: 6,
+    id: 5,
     type: "back_tyre_gauge",
     title: "Back Tyre Gauge",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/back_tyre_gauge.png`,
@@ -179,6 +170,14 @@ export const mockMedia = (vehicleId: any) => [
     timestamp: "2025-09-10T11:15:00",
   },
   // LEFT (you may need to add left items here if you have any)
+
+  {
+    id: 6,
+    type: "Odometer",
+    title: "Odometer",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/odometer_value.png`,
+    timestamp: "2025-09-10T12:00:00",
+  },
 
   // VIDEO
   {

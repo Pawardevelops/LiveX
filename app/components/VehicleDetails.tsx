@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import VehicleDetailsTabView from "./VehicleDetailsTabView";
 import { loadBikesFromStorage } from "./VehicleList";
+import AnnotatedImageViewer from "./AnnotatedImageViewer";
 
 type Vehicle = {
   id: number;
@@ -89,6 +90,41 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
   const loadedBikes = loadBikesFromStorage();
   const bike = loadedBikes.find((b) => b.id === parseInt(bikeId));
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
+  const [vehicleSummary, setVehicleSummary] = useState();
+
+  useEffect(() => {
+    // Define an async function inside the effect
+    const fetchData = async () => {
+      try {
+        // 1. Fetch the data and await the response
+        const response = await fetch(`/api/upload/?vehicleId=${vehicleId}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // 2. Parse the initial JSON response
+        const data = await response.json();
+
+        // 3. The 'analysis' field is a string, so we need to clean and parse it
+        // Remove the markdown code fences (```json and ```)
+        const cleanedString = data.analysis.replace(/```json\n|\n```/g, "");
+
+        // Parse the cleaned string to get the actual JSON object
+        const parsedAnalysis = JSON.parse(cleanedString);
+
+        // 4. Update the state with the final data
+        setVehicleSummary(parsedAnalysis);
+      } catch (e) {
+        // setError(e.message);
+      } finally {
+        // setIsLoading(false);
+      }
+    };
+
+    // Call the async function
+    fetchData();
+  }, []);
 
   if (!bike) {
     return (
@@ -127,20 +163,15 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
         animate={{ opacity: 1, y: 0 }}
         className="mx-auto max-w-6xl mb-6 flex items-center justify-between"
       >
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="flex items-center gap-2 hover:bg-white/50"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
         <div className="text-right">
           <div className="text-xs text-gray-600">Vehicle Inspection</div>
           <div className="text-2xl font-extrabold tracking-tight">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-600 to-blue-600">
-              Po
-            </span>
+            <img
+              className="filter drop-shadow-2xl"
+              src="/logo.png"
+              alt="Logo Image"
+              width={150}
+            />
           </div>
         </div>
       </motion.div>
@@ -176,16 +207,6 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
                       <BikeIcon className="h-16 w-16" />
                     </div>
                   )}
-                  <div className="absolute top-4 right-4">
-                    <Badge
-                      variant="outline"
-                      className={`border ${
-                        statusStyles[bike.status]
-                      } backdrop-blur`}
-                    >
-                      {bike.status}
-                    </Badge>
-                  </div>
                 </motion.div>
               </div>
 
@@ -254,7 +275,7 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
       {/* Tab Navigation */}
 
       {/* Tab Content */}
-      <VehicleDetailsTabView bike={bike} />
+      <VehicleDetailsTabView bike={bike} vehicleSummary={vehicleSummary} />
 
       {/* Media Modal */}
       <AnimatePresence>

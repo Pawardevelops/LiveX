@@ -9,7 +9,7 @@ import { GeminiWebSocket } from "../services/geminiWebSocket";
 import { Base64 } from "js-base64";
 import { s3UploadVideo } from "../utils/s3upload";
 import { buildStepInstruction } from "../prompts/inspector";
-import { SparklesCore } from "@/components/ui/sparkles";
+import { DetailService } from "../services/summary";
 
 const INSTRUCTIONS = buildStepInstruction(null);
 
@@ -54,13 +54,11 @@ const AudioVisualizer = ({
     <div className="flex items-center justify-center gap-1 h-8 w-8">{bars}</div>
   );
 };
-
 export default function CameraPreview({
   onTranscription,
   onToggleChat,
 }: CameraPreviewProps) {
   const router = useRouter();
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -188,7 +186,7 @@ export default function CameraPreview({
         new URLSearchParams(window.location.search).get("vehicleId") || "",
         "walkaround"
       );
-
+      new DetailService().summary(new URLSearchParams(window.location.search).get("vehicleId") || "");
       window.location.assign("/vehicles?v=success");
     };
   };
@@ -197,6 +195,9 @@ export default function CameraPreview({
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current?.stop();
     }
+      new DetailService().summary(new URLSearchParams(window.location.search).get("vehicleId") || "");
+
+    window.location.assign("/vehicles?v=success");
   };
 
   const getMedia = async (mode: FacingMode) => {
@@ -357,7 +358,7 @@ export default function CameraPreview({
         setConnectionStatus("connected");
       },
       (isPlaying) => setIsModelSpeaking(isPlaying),
-      (level) => setOutputAudioLevel(level),
+      (level) => {},
       handleTranscription,
       { instructions: INSTRUCTIONS },
       [
@@ -451,7 +452,7 @@ export default function CameraPreview({
         node.port.onmessage = (event) => {
           if (!isActive || isModelSpeaking) return;
           const { pcmData, level } = event.data;
-          if (typeof level === "number") setAudioLevel(level); // 0..100
+          // if (typeof level === "number") setAudioLevel(level); // 0..100
           if (pcmData) {
             const pcmArray = new Uint8Array(pcmData);
             const b64Data = Base64.fromUint8Array(pcmArray);
@@ -626,26 +627,6 @@ export default function CameraPreview({
                     <Zap className="h-5 w-5" />
                   </Button>
                 </div>
-              </div>
-              <div className="w-[40rem] h-20 relative">
-                {/* Gradients */}
-                <div className="absolute inset-x-20 top-0 bg-gradient-to-r from-transparent via-indigo-500 to-transparent h-[2px] w-3/4 blur-sm" />
-                <div className="absolute inset-x-20 top-0 bg-gradient-to-r from-transparent via-indigo-500 to-transparent h-px w-3/4" />
-                <div className="absolute inset-x-60 top-0 bg-gradient-to-r from-transparent via-sky-500 to-transparent h-[5px] w-1/4 blur-sm" />
-                <div className="absolute inset-x-60 top-0 bg-gradient-to-r from-transparent via-sky-500 to-transparent h-px w-1/4" />
-
-                {/* Core component */}
-                <SparklesCore
-                  background="transparent"
-                  minSize={0.4}
-                  maxSize={1}
-                  particleDensity={1200}
-                  className="w-full h-full"
-                  particleColor="#FFFFFF"
-                />
-
-                {/* Radial Gradient to prevent sharp edges */}
-                <div className="absolute inset-0 w-full h-full  [mask-image:radial-gradient(350px_200px_at_top,transparent_20%,white)]"></div>
               </div>
             </div>
           </div>

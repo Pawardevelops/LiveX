@@ -130,23 +130,13 @@ export default function VehicleList() {
   }: {
     isStartInspection: boolean;
   }) => {
-    if (
-      !formData.name.trim() ||
-      !formData.regNo.trim() ||
-      !formData.odoKm.trim() ||
-      !formData.location.trim()
-    ) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
     const newVehicle = {
-      name: formData.name.trim(),
-      year: formData.year,
+      name: formData.name.trim() ?? "--",
+      year: formData.year ?? new Date().getFullYear(),
       color: formData.color.trim() || "Unknown",
-      regNo: formData.regNo.trim(),
+      regNo: formData.regNo.trim() ?? "--",
       odoKm: parseInt(formData.odoKm) || 0,
-      location: formData.location.trim(),
+      location: formData.location.trim() ?? "--",
       status: "In Progress" as VehicleStatus,
       lastInspection: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
       thumb:
@@ -166,7 +156,9 @@ export default function VehicleList() {
     });
     setIsModalOpen(false);
     if (isStartInspection) {
-      router.push("/live");
+      const vehicleId = bikes.length + 1;
+
+      router.push(`/live?vehicleId=${vehicleId}`);
     }
   };
 
@@ -239,9 +231,13 @@ export default function VehicleList() {
           <div className="flex items-end justify-between gap-3 flex-wrap">
             <div>
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#000000_80%] via-[#ffffff_80%] to-[#000000_80%]">
-                  Po
-                </span>
+                <img
+                  className="filter drop-shadow-2xl"
+                  src="/logo.png"
+                  alt="Logo Image"
+                  width={200}
+                  style={{ marginLeft: -18, marginTop: -18, marginBottom: 18 }}
+                />
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 Advanced Vehicle Inspection Management System
@@ -339,15 +335,7 @@ export default function VehicleList() {
           </p>
           <div className="flex gap-4 md:justify-end">
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="default"
-                  className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create New Lead
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger asChild></DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
@@ -499,6 +487,15 @@ export default function VehicleList() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <Button
+              variant="default"
+              className="text-white hover:scale-105 transition-transform bg-black hover:bg-gray-600"
+              onClick={() => handleCreateVehicle({ isStartInspection: true })}
+            >
+              <Plus className="h-4 w-4" />
+              Create New
+            </Button>
 
             <Button
               variant="secondary"
