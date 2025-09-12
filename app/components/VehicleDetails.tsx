@@ -294,18 +294,32 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
       {/* Tab Content */}
       <VehicleDetailsTabView bike={bike} />
 
-      <div>
-        <h2>Analysis Results</h2>
-        {vehicleSummary?.defects?.map((d, index) => (
-          <>
-            <div> {d?.description} </div>
-            <AnnotatedImageViewer
-              key={index} // It's good practice to add a key for list items
-              imageUrl={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/1/${d.Type}.png`}
-              analysisData={{ defects: [d] }}
-            />
-          </>
-        ))}
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg shadow-sm mt-10">
+        {vehicleSummary?.defects?.length > 0 ? (
+          vehicleSummary.defects.map((d: any, index: any) => (
+            <div key={index} className=" bg-white">
+              <h3 className="text-lg font-semibold mb-2">
+                Defect Identified in{" "}
+                {d.Type.replace(/_/g, " ").replace(
+                  /^(\w)/,
+                  ({ char }: { char: string }) => char
+                )}
+              </h3>
+              <p className="text-gray-700 mb-4">
+                {d?.description || "No description available."}
+              </p>
+
+              <span className="w-[300px] md:w-full">
+                <AnnotatedImageViewer
+                  imageUrl={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/1/${d.Type}.png`}
+                  analysisData={{ defects: [d] }}
+                />
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">No defects found.</p>
+        )}
       </div>
 
       {/* Media Modal */}
