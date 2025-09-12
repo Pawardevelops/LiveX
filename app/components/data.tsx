@@ -12,7 +12,7 @@ import {
 export const stats = [
   {
     icon: Users,
-    label: "Active Inspectors",
+    label: "Completed Inspections",
     value: "12",
     trend: "+2 this week",
     color: "text-blue-600",
@@ -27,8 +27,8 @@ export const stats = [
   {
     icon: Clock,
     label: "Avg. Time",
-    value: "2.5h",
-    trend: "-0.3h improvement",
+    value: "2 Min",
+    trend: "20 Sec improvement",
     color: "text-purple-600",
   },
   {

@@ -66,6 +66,11 @@ export default function LoginPage() {
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-600 to-blue-600">
               LiveX
             </span>
+            <img
+              className="filter drop-shadow-2xl"
+              src="/logo.png"
+              alt="Logo Image"
+            />
           </h1>
           <p className="mt-2 text-sm sm:text-base text-gray-600">
             Sign in to continue to your dashboard

@@ -231,9 +231,13 @@ export default function VehicleList() {
           <div className="flex items-end justify-between gap-3 flex-wrap">
             <div>
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#000000_80%] via-[#ffffff_80%] to-[#000000_80%]">
-                  LiveX
-                </span>
+                <img
+                  className="filter drop-shadow-2xl"
+                  src="/logo.png"
+                  alt="Logo Image"
+                  width={200}
+                  style={{ marginLeft: -18, marginTop: -18, marginBottom: 18 }}
+                />
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 Advanced Vehicle Inspection Management System

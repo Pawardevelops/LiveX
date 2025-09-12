@@ -176,9 +176,12 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
         <div className="text-right">
           <div className="text-xs text-gray-600">Vehicle Inspection</div>
           <div className="text-2xl font-extrabold tracking-tight">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-600 to-blue-600">
-              LiveX
-            </span>
+            <img
+              className="filter drop-shadow-2xl"
+              src="/logo.png"
+              alt="Logo Image"
+              width={150}
+            />
           </div>
         </div>
       </motion.div>

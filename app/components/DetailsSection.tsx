@@ -17,11 +17,6 @@ const DetailsSection = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Inspection Overview
           </h2>
-          <p className="text-gray-600 mb-6">
-            Real-time insights into your vehicle inspection operations. Track
-            performance, monitor progress, and optimize your workflow with
-            comprehensive analytics.
-          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
