@@ -128,7 +128,7 @@ export const GET = async (req: NextRequest) => {
 
     const result = await model.generateContent([
       vehicleInspectionPrompt,
-      ...parts,
+      ...partsWithLabel,
     ]);
 
     return NextResponse.json({
