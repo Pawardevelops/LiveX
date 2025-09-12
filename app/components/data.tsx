@@ -153,24 +153,16 @@ export const mockMedia = (vehicleId: any) => [
     duration: "5:20",
     timestamp: "2025-09-10T12:00:00",
   },
-  {
-    id: 4,
-    type: "right_photo",
-    title: "Right Photo",
-    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/right_photo.png`,
-    duration: "5:20",
-    timestamp: "2025-09-10T12:00:00",
-  },
   // BACK
   {
-    id: 5,
+    id: 4,
     type: "back_photo",
     title: "Back Photo",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/back_photo.png`,
     timestamp: "2025-09-10T10:30:00",
   },
   {
-    id: 6,
+    id: 5,
     type: "back_tyre_gauge",
     title: "Back Tyre Gauge",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/back_tyre_gauge.png`,
@@ -180,7 +172,7 @@ export const mockMedia = (vehicleId: any) => [
   // LEFT (you may need to add left items here if you have any)
 
   {
-    id: 7,
+    id: 6,
     type: "Odometer",
     title: "Odometer",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/odometer_value.png`,
@@ -189,7 +181,7 @@ export const mockMedia = (vehicleId: any) => [
 
   // VIDEO
   {
-    id: 8,
+    id: 7,
     type: "video",
     title: "Inspection Video",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/videos/walkaround.webm`,
