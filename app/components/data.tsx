@@ -131,7 +131,6 @@ export const mockMedia = (vehicleId: any) => [
   // FRONT
   {
     id: 1,
-
     type: "front_tyre",
     title: "Front Tyre",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/front_tyre.png`,
@@ -180,9 +179,17 @@ export const mockMedia = (vehicleId: any) => [
   },
   // LEFT (you may need to add left items here if you have any)
 
-  // VIDEO
   {
     id: 7,
+    type: "Odometer",
+    title: "Odometer",
+    url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/odometer_value.png`,
+    timestamp: "2025-09-10T12:00:00",
+  },
+
+  // VIDEO
+  {
+    id: 8,
     type: "video",
     title: "Inspection Video",
     url: `https://livex-po-bucket.s3.ap-south-1.amazonaws.com/${vehicleId}/videos/walkaround.webm`,
