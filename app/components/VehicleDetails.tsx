@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import VehicleDetailsTabView from "./VehicleDetailsTabView";
 import { loadBikesFromStorage } from "./VehicleList";
+import AnnotatedImageViewer from "./AnnotatedImageViewer";
 
 type Vehicle = {
   id: number;
@@ -89,6 +90,43 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
   const loadedBikes = loadBikesFromStorage();
   const bike = loadedBikes.find((b) => b.id === parseInt(bikeId));
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
+  const [vehicleSummary, setVehicleSummary] = useState();
+
+  console.log(vehicleSummary, "check now ");
+
+  useEffect(() => {
+    // Define an async function inside the effect
+    const fetchData = async () => {
+      try {
+        // 1. Fetch the data and await the response
+        const response = await fetch("/api/upload/?vehicleId=1");
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // 2. Parse the initial JSON response
+        const data = await response.json();
+
+        // 3. The 'analysis' field is a string, so we need to clean and parse it
+        // Remove the markdown code fences (```json and ```)
+        const cleanedString = data.analysis.replace(/```json\n|\n```/g, "");
+
+        // Parse the cleaned string to get the actual JSON object
+        const parsedAnalysis = JSON.parse(cleanedString);
+
+        // 4. Update the state with the final data
+        setVehicleSummary(parsedAnalysis);
+      } catch (e) {
+        // setError(e.message);
+      } finally {
+        // setIsLoading(false);
+      }
+    };
+
+    // Call the async function
+    fetchData();
+  }, []);
 
   if (!bike) {
     return (
@@ -255,6 +293,20 @@ export default function VehicleDetails({ bikeId }: { bikeId: string }) {
 
       {/* Tab Content */}
       <VehicleDetailsTabView bike={bike} />
+
+      <div>
+        <h2>Analysis Results</h2>
+        {vehicleSummary?.defects?.map((d, index) => (
+          <>
+            <div> {d?.description} </div>
+            <AnnotatedImageViewer
+              key={index} // It's good practice to add a key for list items
+              imageUrl={`https://livex-po-bucket.s3.ap-south-1.amazonaws.com/1/${d.Type}.png`}
+              analysisData={{ defects: [d] }}
+            />
+          </>
+        ))}
+      </div>
 
       {/* Media Modal */}
       <AnimatePresence>
